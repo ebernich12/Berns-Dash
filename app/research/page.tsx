@@ -50,10 +50,11 @@ function timeAgo(unix: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Props = { searchParams: { ticker?: string } }
+type Props = { searchParams: Promise<{ ticker?: string }> }
 
 export default async function ResearchPage({ searchParams }: Props) {
-  const ticker = (searchParams.ticker ?? '').toUpperCase().trim()
+  const { ticker: rawTicker } = await searchParams
+  const ticker = (rawTicker ?? '').toUpperCase().trim()
 
   const [quote, profile, financials, news, sentiment] = ticker
     ? await Promise.allSettled([
