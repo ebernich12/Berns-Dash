@@ -39,7 +39,7 @@ export default function FollowersPieChart() {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number) => [value.toLocaleString(), 'Followers']}
+            formatter={(value) => [Number(value).toLocaleString(), 'Followers']}
             contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 6 }}
             labelStyle={{ color: '#fff' }}
           />

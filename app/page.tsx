@@ -3,7 +3,7 @@ import { fetchQuotes } from '@/lib/finnhub'
 import { fetchLatest } from '@/lib/fred'
 import Link from 'next/link'
 
-const MARKET_TICKERS = ['SPY', 'QQQ', 'IWM', 'BTC-USD']
+const MARKET_TICKERS = ['SPY', 'QQQ', 'IWM', 'GLD']
 const MACRO_SERIES   = ['FEDFUNDS', 'DGS10', 'T10Y2Y', 'VIXCLS']
 const MACRO_LABELS   = ['Fed Funds', '10Y Yield', '10Y–2Y Spread', 'VIX']
 
@@ -16,15 +16,6 @@ const modules = [
   { href: '/music',       label: 'Music',        desc: 'Lost River Fleet · Socials',    tag: 'Creative' },
 ]
 
-const API_KEYS = [
-  { label: 'Alpaca',    key: 'ALPACA_API_KEY'     },
-  { label: 'FRED',      key: 'FRED_API_KEY'       },
-  { label: 'Finnhub',   key: 'FINNHUB_API_KEY'    },
-  { label: 'YouTube',   key: 'YOUTUBE_API_KEY'    },
-  { label: 'TikTok',    key: 'TIKTOK_CLIENT_KEY'  },
-  { label: 'WordPress', key: 'WP_BASE_URL'        },
-  { label: 'Meta',      key: 'META_APP_SECRET'    },
-]
 
 async function getMarketData() {
   try { return await fetchQuotes(MARKET_TICKERS) } catch { return {} }
@@ -43,7 +34,6 @@ const greeting = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening'
 
 export default async function Home() {
   const [quotes, macro] = await Promise.all([getMarketData(), getMacroData()])
-  const connected = API_KEYS.filter(k => !!process.env[k.key]).length
 
   return (
     <div>
@@ -122,21 +112,6 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* API status — minimal */}
-      <div className="flex items-center gap-6">
-        <p className="text-xs text-muted font-mono">{connected}/{API_KEYS.length} apis connected</p>
-        <div className="flex gap-4">
-          {API_KEYS.map(({ label, key }) => {
-            const ok = !!process.env[key]
-            return (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className={`w-1 h-1 rounded-full ${ok ? 'bg-green' : 'bg-border'}`} />
-                <span className={`text-xs ${ok ? 'text-dim' : 'text-muted'}`}>{label}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
     </div>
   )
 }

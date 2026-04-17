@@ -11,14 +11,14 @@ import {
 // ─── Wyandanch curriculum ────────────────────────────────────────────────────
 
 const curriculum = [
-  { level: 1, title: 'Economic Foundations',      readings: ['Menger', 'Stigler', 'Smith', 'Morck'],              status: 'up-next' },
-  { level: 2, title: 'Investing Philosophy',       readings: ['Buffett', 'Fisher', 'Marks', 'Graham', 'Taleb'],   status: 'queue'   },
-  { level: 3, title: 'Behavioral & Macro Theory', readings: ['Keynes', 'Hayek', 'Soros', 'Kahneman', 'Friedman'],status: 'queue'   },
-  { level: 4, title: 'Valuation & Growth',         readings: ['Damodaran', 'Fisher/Lynch', 'Edwards/Magee'],      status: 'queue'   },
-  { level: 5, title: 'Quantitative Foundations',  readings: ['Boyko', 'Econometrics', 'GARCH 101'],              status: 'queue'   },
-  { level: 6, title: 'Strategy & Implementation', readings: ['Markowitz', 'Black-Litterman', 'Gappy ×3'],        status: 'queue'   },
-  { level: 7, title: 'Markets & Instruments',     readings: ['Commodities', 'Black-Scholes', 'Fixed Income'],    status: 'queue'   },
-  { level: 8, title: 'Advanced Topics',           readings: ['Microstructure', 'Stoch. Vol', 'ML Differential'], status: 'queue'   },
+  { level: 1, title: 'Economic Foundations',      readings: ['Menger', 'Stigler', 'Smith', 'Morck'],               status: 'up-next', href: 'https://wyandanchlibrary.com/track/fundamental'   },
+  { level: 2, title: 'Investing Philosophy',       readings: ['Buffett', 'Fisher', 'Marks', 'Graham', 'Taleb'],    status: 'queue',   href: 'https://wyandanchlibrary.com/track/fundamental'   },
+  { level: 3, title: 'Macro & Monetary Theory',   readings: ['Keynes', 'Hayek', 'Soros', 'Kahneman', 'Friedman'], status: 'queue',   href: 'https://wyandanchlibrary.com/track/macro'         },
+  { level: 4, title: 'Valuation',                  readings: ['Damodaran', 'Fisher/Lynch', 'Edwards/Magee'],       status: 'queue',   href: 'https://wyandanchlibrary.com/track/fundamental'   },
+  { level: 5, title: 'Quantitative Foundations',  readings: ['Boyko', 'Econometrics', 'GARCH 101'],               status: 'queue',   href: 'https://wyandanchlibrary.com/track/quantitative'  },
+  { level: 6, title: 'Strategy & Implementation', readings: ['Markowitz', 'Black-Litterman', 'Gappy ×3'],         status: 'queue',   href: 'https://wyandanchlibrary.com/track/practitioner'  },
+  { level: 7, title: 'Markets & Instruments',     readings: ['Commodities', 'Black-Scholes', 'Fixed Income'],     status: 'queue',   href: 'https://wyandanchlibrary.com/track/practitioner'  },
+  { level: 8, title: 'Advanced Topics',           readings: ['Microstructure', 'Stoch. Vol', 'ML Differential'],  status: 'queue',   href: 'https://wyandanchlibrary.com/track/quantitative'  },
 ]
 
 const statusBadge = (s: string) => {
@@ -318,29 +318,28 @@ export default async function ResearchPage({ searchParams }: Props) {
       </div>
 
       {/* ── Wyandanch curriculum ─────────────────────────────────────────── */}
-      <Card title="Wyandanch Library — Curriculum Progress">
-        <div className="grid grid-cols-4 gap-3 mb-4">
+      <Card title="Wyandanch Library">
+        <div className="grid grid-cols-4 gap-3">
           {curriculum.map(level => (
-            <div key={level.level}
-              className="bg-surface border border-border rounded-lg p-3 hover:border-accent/50 transition-colors">
+            <a
+              key={level.level}
+              href={level.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-surface border border-border rounded-lg p-3 hover:border-accent/50 transition-colors group"
+            >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-muted">L{level.level}</span>
+                <span className="text-xs text-muted font-mono">L{level.level}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded ${statusBadge(level.status)}`}>
                   {statusLabel(level.status)}
                 </span>
               </div>
-              <p className="text-xs text-white font-semibold leading-tight mb-1.5">{level.title}</p>
+              <p className="text-xs text-white font-medium leading-tight mb-1.5 group-hover:text-accent transition-colors">
+                {level.title}
+              </p>
               <p className="text-xs text-muted leading-relaxed">{level.readings.join(' · ')}</p>
-            </div>
+            </a>
           ))}
-        </div>
-        <div className="pt-3 border-t border-border flex items-center gap-4">
-          <a href="https://wyandanchlibrary.com" target="_blank" rel="noopener noreferrer"
-            className="text-xs text-accent hover:underline">
-            wyandanchlibrary.com ↗
-          </a>
-          <span className="text-muted text-xs">·</span>
-          <span className="text-xs text-muted">Update status in research/page.tsx as you progress</span>
         </div>
       </Card>
     </div>
