@@ -18,20 +18,30 @@ function relativeDate(iso: string) {
   return `${Math.floor(diff / 365)}y ago`
 }
 
-function loadBertrand() {
+async function loadBertrand() {
+  // 1. Try remote URL (Vercel Blob or any public URL)
+  const remoteUrl = process.env.BERTRAND_DATA_URL
+  if (remoteUrl) {
+    try {
+      const res = await fetch(remoteUrl, { next: { revalidate: 3600 } })
+      if (res.ok) return res.json()
+    } catch {}
+  }
+
+  // 2. Fallback: local filesystem (dev only)
   try {
     const raw = fs.readFileSync(
       'C:\\Users\\ethan\\OneDrive\\Claude Code Projects\\Bertrand\\data\\latest.json',
       'utf-8'
     )
     return JSON.parse(raw)
-  } catch {
-    return null
-  }
+  } catch {}
+
+  return null
 }
 
-export default function MusicPage() {
-  const data = loadBertrand()
+export default async function MusicPage() {
+  const data = await loadBertrand()
 
   const yt  = data?.youtube
   const ig  = data?.instagram
