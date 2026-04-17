@@ -1,8 +1,7 @@
 import Card from '@/components/Card'
 import PageHeader from '@/components/PageHeader'
-import { fetchBandSpotify } from '@/lib/spotify'
-import { fetchBandYouTube } from '@/lib/youtube'
 import FollowersPieChart from '@/components/FollowersPieChart'
+import fs from 'fs'
 
 function fmt(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -19,215 +18,130 @@ function relativeDate(iso: string) {
   return `${Math.floor(diff / 365)}y ago`
 }
 
-const hasYouTube  = !!process.env.YOUTUBE_API_KEY
-const hasSpotify  = !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET)
-const hasTikTok   = !!process.env.TIKTOK_CLIENT_KEY
-const hasMeta     = !!process.env.META_APP_SECRET
+function loadBertrand() {
+  try {
+    const raw = fs.readFileSync(
+      'C:\\Users\\ethan\\OneDrive\\Claude Code Projects\\Bertrand\\data\\latest.json',
+      'utf-8'
+    )
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
 
-export default async function MusicPage() {
-  const [spotifyResult, youtubeResult] = await Promise.allSettled([
-    fetchBandSpotify(),
-    fetchBandYouTube(),
-  ])
+export default function MusicPage() {
+  const data = loadBertrand()
 
-  const spotify = spotifyResult.status === 'fulfilled' ? spotifyResult.value : { artist: null, tracks: [] }
-  const youtube = youtubeResult.status === 'fulfilled' ? youtubeResult.value : { stats: null, videos: [] }
+  const yt  = data?.youtube
+  const ig  = data?.instagram
+  const tt  = data?.tiktok
+  const am  = data?.apple_music
+  const wp  = data?.wordpress
+  const ts  = data?.timestamp ? new Date(data.timestamp) : null
+
+  const ttFollowers = parseInt((tt?.followers ?? '0').toString().replace(/\D/g, '')) || 0
+  const igFollowers = parseInt((ig?.followers ?? '0').toString().replace(/\D/g, '')) || 0
+  const ytSubs      = yt?.subscribers ?? 0
 
   return (
     <div>
       <PageHeader
         title="Music"
-        subtitle="Lost River Fleet — streaming stats, social, releases"
+        subtitle={ts ? `Lost River Fleet · updated ${relativeDate(ts.toISOString())}` : 'Lost River Fleet'}
       />
 
-      {/* ── Platform followers/subscribers ──────────────────────────────── */}
-      <p className="text-xs text-muted uppercase tracking-widest mb-3">Followers & Subscribers</p>
-      <div className="grid grid-cols-4 gap-4 mb-6">
-
-        {/* YouTube Subscribers */}
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">YouTube</p>
-          <p className="text-xs text-muted mb-1">Subscribers</p>
-          <p className="text-2xl font-bold text-white">
-            {youtube.stats ? fmt(youtube.stats.subscribers) : '—'}
-          </p>
-          <p className={`text-xs mt-1 ${hasYouTube ? 'text-green' : 'text-muted'}`}>
-            {hasYouTube ? 'Live' : 'No key'}
-          </p>
-        </Card>
-
-        {/* Spotify Followers */}
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">Spotify</p>
-          <p className="text-xs text-muted mb-1">Followers</p>
-          <p className="text-2xl font-bold text-white">
-            {spotify.artist ? fmt(spotify.artist.followers) : '—'}
-          </p>
-          <p className={`text-xs mt-1 ${hasSpotify ? 'text-green' : 'text-muted'}`}>
-            {hasSpotify ? `Pop. ${spotify.artist?.popularity ?? '—'}/100` : 'Add Client ID + Secret'}
-          </p>
-        </Card>
-
-        {/* TikTok Followers */}
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">TikTok</p>
-          <p className="text-xs text-muted mb-1">Followers</p>
-          <p className="text-2xl font-bold text-white">—</p>
-          <p className={`text-xs mt-1 ${hasTikTok ? 'text-yellow' : 'text-muted'}`}>
-            {hasTikTok ? 'Needs OAuth flow' : 'No key'}
-          </p>
-        </Card>
-
-        {/* Instagram Followers */}
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">Instagram</p>
-          <p className="text-xs text-muted mb-1">Followers</p>
-          <p className="text-2xl font-bold text-white">—</p>
-          <p className={`text-xs mt-1 ${hasMeta ? 'text-yellow' : 'text-muted'}`}>
-            {hasMeta ? 'Needs OAuth flow' : 'Add Meta App Secret'}
-          </p>
-        </Card>
+      {/* Top stats */}
+      <div className="grid grid-cols-4 gap-3 mb-8">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted mb-2">YouTube</p>
+          <p className="text-2xl font-semibold text-white">{ytSubs ? fmt(ytSubs) : '—'}</p>
+          <p className="text-xs text-dim mt-1">{yt ? `${fmt(yt.total_views)} views · ${yt.video_count} videos` : 'No data'}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted mb-2">Instagram</p>
+          <p className="text-2xl font-semibold text-white">{igFollowers ? fmt(igFollowers) : '—'}</p>
+          <p className="text-xs text-dim mt-1">{ig?.posts ?? 'No data'}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted mb-2">TikTok</p>
+          <p className="text-2xl font-semibold text-white">{ttFollowers ? fmt(ttFollowers) : '—'}</p>
+          <p className="text-xs text-dim mt-1">{tt?.total_likes ? `${tt.total_likes} total likes` : 'No data'}</p>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-xs text-muted mb-2">Apple Music</p>
+          <p className="text-2xl font-semibold text-white">{am?.recent_tracks?.length ?? '—'}</p>
+          <p className="text-xs text-dim mt-1">{am?.genre ?? 'tracks'}</p>
+        </div>
       </div>
 
-      {/* ── Streaming stats row ──────────────────────────────────────────── */}
-      <p className="text-xs text-muted uppercase tracking-widest mb-3">Streaming Stats</p>
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">YT Total Views</p>
-          <p className="text-2xl font-bold text-white">
-            {youtube.stats ? fmt(youtube.stats.views) : '—'}
-          </p>
-          <p className="text-xs text-muted mt-1">
-            {youtube.stats ? `${youtube.stats.videoCount} videos` : hasYouTube ? 'Not found' : 'No key'}
-          </p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">Monthly Listeners</p>
-          <p className="text-2xl font-bold text-white">—</p>
-          <p className="text-xs text-muted mt-1">Spotify for Artists scraper</p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">Spotify Popularity</p>
-          <p className="text-2xl font-bold text-white">
-            {spotify.artist ? `${spotify.artist.popularity}/100` : '—'}
-          </p>
-          <p className="text-xs text-muted mt-1">{hasSpotify ? 'Spotify index' : 'No key'}</p>
-        </Card>
-        <Card>
-          <p className="text-xs text-muted uppercase tracking-widest mb-1">Genres</p>
-          <p className="text-sm font-bold text-white mt-1">
-            {spotify.artist?.genres?.length
-              ? spotify.artist.genres.slice(0, 2).join(', ')
-              : '—'}
-          </p>
-          <p className="text-xs text-muted mt-1">{hasSpotify ? 'Spotify' : 'No key'}</p>
-        </Card>
-      </div>
-
-      {/* ── Followers breakdown ──────────────────────────────────────────── */}
+      {/* Followers pie + YouTube videos */}
       <div className="grid grid-cols-3 gap-6 mb-6">
-        <Card title="Followers — Platform Breakdown" className="col-span-1">
+        <Card title="Followers by Platform">
           <FollowersPieChart />
         </Card>
-        <Card title="Social Stats" className="col-span-2">
-          <div className="grid grid-cols-3 gap-4 text-sm h-full">
-            {[
-              { label: 'TikTok Followers',    val: '1,028',  sub: '19.7K total likes'  },
-              { label: 'Instagram Followers',  val: '894',    sub: '40 posts'            },
-              { label: 'YouTube Subscribers',  val: '106',    sub: '31,977 total views'  },
-            ].map(({ label, val, sub }) => (
-              <div key={label} className="border border-border rounded p-4">
-                <p className="text-xs text-muted uppercase tracking-widest mb-2">{label}</p>
-                <p className="text-2xl font-bold text-white">{val}</p>
-                <p className="text-xs text-muted mt-1">{sub}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
 
-      {/* ── Tracks + Videos ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <Card title="Spotify — Top Tracks">
-          {spotify.tracks.length > 0 ? (
+        <Card title="YouTube — Recent Videos" className="col-span-2">
+          {yt?.recent_videos?.length > 0 ? (
             <div className="space-y-2">
-              {spotify.tracks.slice(0, 8).map((t, i) => (
-                <div key={t.id} className="flex items-center gap-3">
-                  <span className="text-xs text-muted w-4">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <a href={t.spotifyUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-white hover:text-accent truncate block">{t.name}</a>
-                    <p className="text-xs text-muted truncate">{t.album} · {t.releaseDate?.slice(0, 4)}</p>
+              {yt.recent_videos.slice(0, 6).map((v: any, i: number) => (
+                <div key={i} className="flex justify-between items-start border-b border-border pb-2 last:border-0">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <p className="text-sm text-white truncate">{v.title}</p>
+                    <p className="text-xs text-dim mt-0.5">{relativeDate(v.published)}</p>
                   </div>
-                  <span className="text-xs text-muted w-6 text-right">{t.popularity}</span>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-mono text-white">{fmt(v.views)}</p>
+                    <p className="text-xs text-dim">{v.likes} likes</p>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted">
-              {hasSpotify ? 'No tracks found for Lost River Fleet.' : 'Add SPOTIFY_CLIENT_ID + SPOTIFY_CLIENT_SECRET to .env.local'}
-            </p>
-          )}
-        </Card>
-
-        <Card title="YouTube — Recent Videos">
-          {youtube.videos.length > 0 ? (
-            <div className="space-y-3">
-              {youtube.videos.slice(0, 6).map((v) => (
-                <div key={v.id} className="border-b border-border pb-2 last:border-0 last:pb-0">
-                  <a href={v.url} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-white hover:text-accent leading-snug block">{v.title}</a>
-                  <p className="text-xs text-muted mt-0.5">
-                    {fmt(v.views)} views · {v.likes > 0 ? `${fmt(v.likes)} likes · ` : ''}{relativeDate(v.publishedAt)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted">
-              {hasYouTube ? 'No videos found — add YOUTUBE_CHANNEL_ID to .env.local for exact match.' : 'Add YOUTUBE_API_KEY to .env.local'}
-            </p>
+            <p className="text-sm text-dim">No video data — run Bertrand.</p>
           )}
         </Card>
       </div>
 
-      {/* ── Artist profile + API status ─────────────────────────────────── */}
+      {/* Apple Music + WordPress */}
       <div className="grid grid-cols-2 gap-6">
-        <Card title="Artist Profile">
-          <div className="space-y-2 text-sm">
-            {[
-              { label: 'Band',     val: 'Lost River Fleet'                                   },
-              { label: 'Role',     val: 'Guitar'                                             },
-              { label: 'Spotify',  val: spotify.artist?.spotifyUrl ? '✓ Found' : hasSpotify ? 'Not found' : 'No keys' },
-              { label: 'YouTube',  val: youtube.stats?.title ?? (hasYouTube ? 'Not found' : 'No key') },
-            ].map(({ label, val }) => (
-              <div key={label} className="flex justify-between">
-                <span className="text-muted">{label}</span>
-                <span className="text-white text-right max-w-[65%] truncate text-xs">{val}</span>
-              </div>
-            ))}
-          </div>
+        <Card title="Apple Music — Releases">
+          {am?.recent_tracks?.length > 0 ? (
+            <div className="space-y-2">
+              {am.recent_tracks.map((t: any, i: number) => (
+                <div key={i} className="flex justify-between border-b border-border pb-2 last:border-0">
+                  <div>
+                    <p className="text-sm text-white">{t.title}</p>
+                    <p className="text-xs text-dim">{t.album}</p>
+                  </div>
+                  <p className="text-xs text-dim flex-shrink-0 ml-4">{t.release_date}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-dim">No data — run Bertrand.</p>
+          )}
         </Card>
 
-        <Card title="Platform Status">
-          <div className="space-y-2">
-            {[
-              { platform: 'YouTube',   connected: hasYouTube,  note: 'Subscribers + views'        },
-              { platform: 'Spotify',   connected: hasSpotify,  note: 'Followers + top tracks'      },
-              { platform: 'TikTok',    connected: hasTikTok,   note: 'Followers — OAuth needed'    },
-              { platform: 'Instagram', connected: hasMeta,     note: 'Followers — OAuth needed'    },
-              { platform: 'Monthly Listeners', connected: false, note: 'Spotify for Artists scraper' },
-            ].map(({ platform, connected, note }) => (
-              <div key={platform} className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm text-white">{platform}</span>
-                  <p className="text-xs text-muted">{note}</p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded flex-shrink-0 ${connected ? 'bg-green/10 text-green' : 'bg-border text-muted'}`}>
-                  {connected ? 'Connected' : 'Pending'}
-                </span>
+        <Card title="Website — WordPress">
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-muted mb-2">Published</p>
+              {wp?.published_posts?.length > 0 ? wp.published_posts.map((p: any, i: number) => (
+                <a key={i} href={p.link} target="_blank" rel="noopener noreferrer"
+                  className="block text-sm text-white hover:text-accent transition-colors mb-1">
+                  {p.title} <span className="text-dim text-xs">({p.date})</span>
+                </a>
+              )) : <p className="text-sm text-dim">No posts yet.</p>}
+            </div>
+            <div className="pt-3 border-t border-border">
+              <p className="text-xs text-muted mb-2">Pages</p>
+              <div className="flex gap-2 flex-wrap">
+                {wp?.pages?.map((p: string) => (
+                  <span key={p} className="text-xs bg-border text-dim px-2 py-1 rounded">{p}</span>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </Card>
       </div>
