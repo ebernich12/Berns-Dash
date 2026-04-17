@@ -1,4 +1,50 @@
 // Canvas LMS API client — UNH
+// ICS feed URL (no auth needed)
+const CANVAS_ICS = 'https://mycourses.unh.edu/feeds/calendars/user_5JQHKGGPGWFUCP2S4VlIY1mWlnIx4yBjevKriSmP.ics'
+
+export interface CanvasEvent {
+  title:  string
+  date:   string
+  course: string
+  type:   'assignment' | 'event'
+}
+
+function parseICS(raw: string): CanvasEvent[] {
+  const events: CanvasEvent[] = []
+  const now   = new Date()
+  const in30  = new Date(Date.now() + 30 * 86400_000)
+  const blocks = raw.split('BEGIN:VEVENT')
+
+  for (const block of blocks.slice(1)) {
+    const get = (key: string) =>
+      block.match(new RegExp(`${key}[^:]*:([^\r\n]+)`))?.[1]?.trim() ?? ''
+
+    const summary  = get('SUMMARY')
+    const dtstart  = get('DTSTART')
+    const categories = get('CATEGORIES').toLowerCase()
+    if (!summary || !dtstart) continue
+
+    const dateStr = dtstart.replace(/T.*/, '').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')
+    const date    = new Date(dateStr)
+    if (date < now || date > in30) continue
+
+    const course = summary.match(/\[(.+?)\]/)?.[1] ?? ''
+    const title  = summary.replace(/\s*\[.+?\]\s*/, '').trim()
+
+    events.push({ title, date: dateStr, course, type: categories.includes('assignment') ? 'assignment' : 'event' })
+  }
+  return events.sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export async function fetchCanvasCalendar(): Promise<CanvasEvent[]> {
+  try {
+    const res = await fetch(CANVAS_ICS, { next: { revalidate: 3600 } })
+    if (!res.ok) return []
+    return parseICS(await res.text())
+  } catch { return [] }
+}
+
+
 // Docs: https://canvas.instructure.com/doc/api/
 //
 // HOW TO GET YOUR TOKEN:
