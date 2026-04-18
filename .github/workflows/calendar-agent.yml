@@ -48,6 +48,10 @@ jobs:
             method="POST"
           )
 
-          with urllib.request.urlopen(req) as res:
-            print(res.read().decode())
+          try:
+            with urllib.request.urlopen(req) as res:
+              print(res.read().decode())
+          except urllib.error.HTTPError as e:
+            print("HTTP Error:", e.code)
+            print(e.read().decode())
           EOF
