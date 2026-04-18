@@ -24,7 +24,7 @@ jobs:
           import os, json, urllib.request
 
           payload = {
-            "agent_id": "agent_011CaApKVUoCDpmU2hS6H1Pm",
+            "agent": "agent_011CaApKVUoCDpmU2hS6H1Pm",
             "environment_variables": {
               "GOOGLE_CLIENT_ID":     os.environ["GOOGLE_CLIENT_ID"],
               "GOOGLE_CLIENT_SECRET": os.environ["GOOGLE_CLIENT_SECRET"],
