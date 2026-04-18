@@ -105,13 +105,13 @@ const server = http.createServer(async (req, res) => {
     <html><body style="font-family:sans-serif;padding:40px;background:#0c0c0e;color:#fff">
       <h2 style="color:#8b5cf6">✅ Google Calendar connected!</h2>
       <p>Refresh token saved to .env.local</p>
-      <p style="color:#888">Now add <code>GOOGLE_REFRESH_TOKEN</code> to Vercel env vars and redeploy.</p>
+      <p style="color:#888">Now add <code>GOOGLE_REFRESH_TOKEN</code> to <code>.env.local</code> on your Oracle server and restart PM2.</p>
       <p style="color:#666">You can close this tab.</p>
     </body></html>
   `)
 
   console.log('\n✅  Refresh token saved to .env.local')
-  console.log('   Next: add GOOGLE_REFRESH_TOKEN to Vercel → redeploy\n')
+  console.log('   Next: add GOOGLE_REFRESH_TOKEN to .env.local on Oracle server → pm2 restart berns-dashboard\n')
   server.close()
 })
 

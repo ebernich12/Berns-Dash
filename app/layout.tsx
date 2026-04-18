@@ -4,7 +4,7 @@ import Sidebar from '@/components/Sidebar'
 
 export const metadata: Metadata = {
   title: 'Berns Dashboard',
-  description: 'Personal OS — finance, classes, research, music',
+  description: 'Personal OS — finance, classes, research',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

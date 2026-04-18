@@ -26,8 +26,8 @@ yarn-error.log*
 .env*.local
 .env
 
-# vercel
-.vercel
+# data files (generated at runtime)
+/data/intelligence.json
 
 # typescript
 *.tsbuildinfo
@@ -35,3 +35,4 @@ next-env.d.ts
 node_modules/
 .env.local
 .next/
+

@@ -4,31 +4,24 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import {
-  LayoutDashboard, BookOpen, Briefcase,
-  LineChart, Calendar, Newspaper, Music,
+  LayoutDashboard, BookOpen,
+  LineChart, Calendar, Newspaper,
 } from 'lucide-react'
 
 const nav = [
   {
     group: 'Personal',
     items: [
-      { href: '/',            label: 'Home',        icon: LayoutDashboard },
-      { href: '/classes',     label: 'Classes',     icon: BookOpen        },
-      { href: '/internships', label: 'Internships', icon: Briefcase       },
+      { href: '/',        label: 'Home',    icon: LayoutDashboard },
+      { href: '/classes', label: 'Classes', icon: BookOpen        },
     ],
   },
   {
     group: 'Finance',
     items: [
-      { href: '/research', label: 'Research', icon: LineChart },
+      { href: '/finance',  label: 'Finance',  icon: LineChart },
       { href: '/calendar', label: 'Calendar', icon: Calendar  },
       { href: '/news',     label: 'News',     icon: Newspaper },
-    ],
-  },
-  {
-    group: 'Creative',
-    items: [
-      { href: '/music', label: 'Music', icon: Music },
     ],
   },
 ]
