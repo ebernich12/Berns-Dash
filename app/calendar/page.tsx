@@ -5,11 +5,10 @@ import CalendarClient from './CalendarClient'
 export const dynamic = 'force-dynamic'
 
 export default async function CalendarPage() {
-  const calData    = await getSnapshot('calendar')
-  const schoolData = await getSnapshot('school')
+  const calData = await getSnapshot('calendar')
 
-  const canvas   = schoolData?.calendar ?? []
-  const gcal     = calData?.google      ?? []
+  const canvas   = calData?.canvas   ?? []
+  const gcal     = calData?.google   ?? []
   const earnings = calData?.earnings    ?? []
   const econ     = calData?.economic    ?? []
   const macro    = calData?.macro       ?? []
