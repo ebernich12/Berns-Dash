@@ -33,7 +33,7 @@ export default function Sidebar() {
     <aside className="fixed left-0 top-0 h-screen w-48 bg-panel border-r border-border flex flex-col z-10">
       <div className="px-5 pt-6 pb-5">
         <p className="text-base font-semibold text-white tracking-tight">Ethan Bernich</p>
-        <p className="text-xs text-muted mt-0.5">UNH · Finance · 2027</p>
+        <p className="text-xs text-muted mt-0.5">Finance + Economics · UNH '28</p>
       </div>
 
       <nav className="flex-1 px-2 overflow-y-auto">
