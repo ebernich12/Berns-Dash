@@ -16,7 +16,7 @@ export default function Home() {
       <div className="mb-10">
         <p className="text-dim text-sm mb-1">{greeting}</p>
         <h1 className="text-3xl font-semibold text-white tracking-tight">Ethan Bernich</h1>
-        <p className="text-dim text-sm mt-1">UNH Finance · Atkins FIG · Lost River Fleet</p>
+        <p className="text-dim text-sm mt-1">Finance + Economics · UNH '28 · Atkins FIG · Lost River Fleet</p>
       </div>
 
       <div className="mb-10">
