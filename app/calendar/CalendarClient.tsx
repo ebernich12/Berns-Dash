@@ -47,7 +47,7 @@ export default function CalendarClient({ canvas, gcal, econ, earnings, macro }: 
 }) {
   const canvas7 = canvas.filter(e => isWithin7Days(e.date))
   const gcal7 = gcal.filter(e => isWithin7Days(e.date))
-  const econ7 = econ.filter(e => isWithin7Days(e.time?.slice(0, 10) ?? e.date))
+  const econ7 = econ.filter(e => isWithin7Days(e.date ?? e.time?.slice(0, 10)))
 
   return (
     <div className="grid grid-cols-3 gap-6">
@@ -105,16 +105,13 @@ export default function CalendarClient({ canvas, gcal, econ, earnings, macro }: 
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">FRED & Earnings</p>
         <Card>
           {econ7.length > 0 ? econ7.map((e: any, i: number) => (
-            <CheckableRow key={i} id={`econ-${e.event}-${e.time}`}>
+            <CheckableRow key={i} id={`econ-${e.release_name ?? e.event}-${e.date ?? e.time}`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-white">{e.event}</p>
-                  <p className="text-xs text-dim">{e.time?.slice(0, 10)}</p>
+                  <p className="text-sm text-white">{e.release_name ?? e.event}</p>
+                  <p className="text-xs text-dim">{e.type ?? (e.date ?? e.time?.slice(0, 10))}</p>
                 </div>
-                <div className="text-right text-xs text-muted ml-2 flex-shrink-0">
-                  <p>Est: {e.estimate ?? '—'}</p>
-                  <p>Prev: {e.prev ?? '—'}</p>
-                </div>
+                <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
               </div>
             </CheckableRow>
           )) : (
