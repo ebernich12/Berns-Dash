@@ -57,7 +57,7 @@ const params = new URLSearchParams({
   client_id:     CLIENT_ID,
   redirect_uri:  REDIRECT_URI,
   response_type: 'code',
-  scope:         'https://www.googleapis.com/auth/calendar.readonly',
+  scope:         'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
   access_type:   'offline',
   prompt:        'consent',
 })
