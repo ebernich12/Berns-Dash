@@ -4,21 +4,23 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Card from '@/components/Card'
 
-function daysUntil(dateStr: string) {
+function dateDiff(dateStr: string) {
+  if (!dateStr) return Infinity
   const today = new Date().toLocaleDateString('en-CA')
   const [ty, tm, td] = today.split('-').map(Number)
   const [dy, dm, dd] = dateStr.slice(0, 10).split('-').map(Number)
-  const diff = Math.round((Date.UTC(dy, dm-1, dd) - Date.UTC(ty, tm-1, td)) / 86400_000)
+  return Math.round((Date.UTC(dy, dm-1, dd) - Date.UTC(ty, tm-1, td)) / 86400_000)
+}
+
+function daysUntil(dateStr: string) {
+  const diff = dateDiff(dateStr)
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Tomorrow'
   return `${diff}d`
 }
 
 function isWithin7Days(dateStr: string) {
-  const today = new Date().toLocaleDateString('en-CA')
-  const [ty, tm, td] = today.split('-').map(Number)
-  const [dy, dm, dd] = dateStr.slice(0, 10).split('-').map(Number)
-  const diff = Math.round((Date.UTC(dy, dm-1, dd) - Date.UTC(ty, tm-1, td)) / 86400_000)
+  const diff = dateDiff(dateStr)
   return diff >= 0 && diff <= 7
 }
 
@@ -59,8 +61,7 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
     })
   }
 
-  const todayStr    = new Date().toLocaleDateString('en-CA')
-  const allCanvas   = canvas.filter(e => e.date.slice(0, 10) >= todayStr)
+  const allCanvas   = canvas.filter(e => e.date && dateDiff(e.date) >= 0)
   const gcal7       = gcal.filter(e => isWithin7Days(e.date))
   const econ7       = econ.filter(e => isWithin7Days(e.date))
   const earnings7   = earnings.filter(e => isWithin7Days(e.date))
