@@ -163,7 +163,7 @@ async function fetchFred(apiKey) {
   const today = toET(new Date())
   const in7   = toET(daysFromNow(7))
   const data  = await fetchJSON(
-    `https://api.stlouisfed.org/fred/releases/dates?api_key=${apiKey}&release_date_start=${today}&release_date_end=${in7}&file_type=json`
+    `https://api.stlouisfed.org/fred/releases/dates?api_key=${apiKey}&realtime_start=${today}&realtime_end=${in7}&include_release_dates_with_no_data=true&file_type=json`
   )
   return (data.release_dates || []).map(r => ({
     date:         r.date,
