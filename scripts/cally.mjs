@@ -186,7 +186,7 @@ async function fetchFred(apiKey) {
     FRED_WATCHLIST.map(async ({ id, name, type }) => {
       try {
         const data = await fetchJSON(
-          `https://api.stlouisfed.org/fred/release/dates?api_key=${apiKey}&release_id=${id}&realtime_start=${today}&realtime_end=${in7}&file_type=json`
+          `https://api.stlouisfed.org/fred/release/dates?api_key=${apiKey}&release_id=${id}&sort_order=asc&file_type=json`
         )
         for (const r of (data.release_dates || [])) {
           if (r.date >= today && r.date <= in7) {
@@ -317,15 +317,17 @@ async function main() {
       .then(r  => { results.google   = r; log(`Google Cal: ${r.length} events`) })
       .catch(e => log(`ERROR Google: ${e.message}`)),
 
-    fetchFred(env.FRED_API_KEY)
-      .then(r  => curateFred(r, env.GEMINI_API_KEY))
-      .then(r  => { results.economic = r; log(`FRED: ${r.length} curated releases`) })
-      .catch(e => log(`ERROR FRED: ${e.message}`)),
-
-    fetchEarnings(env.FINNHUB_API_KEY)
-      .then(r  => curateEarnings(r, env.GEMINI_API_KEY))
-      .then(r  => { results.earnings = r; log(`Earnings: ${r.length} curated reports`) })
-      .catch(e => log(`ERROR Earnings: ${e.message}`)),
+    (async () => {
+      try {
+        const fred = await fetchFred(env.FRED_API_KEY)
+        results.economic = await curateFred(fred, env.GEMINI_API_KEY)
+        log(`FRED: ${results.economic.length} curated releases`)
+        await new Promise(r => setTimeout(r, 4000)) // avoid Gemini rate limit
+        const earn = await fetchEarnings(env.FINNHUB_API_KEY)
+        results.earnings = await curateEarnings(earn, env.GEMINI_API_KEY)
+        log(`Earnings: ${results.earnings.length} curated reports`)
+      } catch (e) { log(`ERROR FRED/Earnings: ${e.message}`) }
+    })(),
   ])
 
   await postToIngest(results, env.CRON_SECRET)
