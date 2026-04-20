@@ -1,10 +1,12 @@
 import Link from 'next/link'
 
 const modules = [
-  { href: '/classes',  label: 'Classes',  desc: 'Courses & grades',           tag: 'UNH'      },
-  { href: '/finance',  label: 'Finance',  desc: 'Markets · Macro · Tickers',  tag: 'Finance'  },
-  { href: '/calendar', label: 'Calendar', desc: 'Macro events · Earnings',    tag: 'Finance'  },
-  { href: '/news',     label: 'News',     desc: 'Headlines · Sentiment',      tag: 'Finance'  },
+  { href: '/classes',  label: 'Classes',  desc: 'Courses & grades',              tag: 'UNH'     },
+  { href: '/finance',  label: 'Finance',  desc: 'Markets · Macro · Tickers',     tag: 'Finance' },
+  { href: '/calendar', label: 'Calendar', desc: 'Macro events · Earnings',       tag: 'Finance' },
+  { href: '/news',     label: 'News',     desc: 'Headlines · Sentiment',         tag: 'Finance' },
+  { href: '/trading',  label: 'Trading',  desc: 'Bot · Positions · Signals',     tag: 'Trading' },
+  { href: '/music',    label: 'Music',    desc: 'Gigs · Socials · Lost River',   tag: 'Music'   },
 ]
 
 export default function Home() {

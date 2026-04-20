@@ -6,6 +6,7 @@ import clsx from 'clsx'
 import {
   LayoutDashboard, BookOpen,
   LineChart, Calendar, Newspaper,
+  TrendingUp, Music,
 } from 'lucide-react'
 
 const nav = [
@@ -14,14 +15,16 @@ const nav = [
     items: [
       { href: '/',        label: 'Home',    icon: LayoutDashboard },
       { href: '/classes', label: 'Classes', icon: BookOpen        },
+      { href: '/music',   label: 'Music',   icon: Music           },
     ],
   },
   {
     group: 'Finance',
     items: [
-      { href: '/finance',  label: 'Finance',  icon: LineChart },
-      { href: '/calendar', label: 'Calendar', icon: Calendar  },
-      { href: '/news',     label: 'News',     icon: Newspaper },
+      { href: '/finance',  label: 'Finance',  icon: LineChart  },
+      { href: '/trading',  label: 'Trading',  icon: TrendingUp },
+      { href: '/calendar', label: 'Calendar', icon: Calendar   },
+      { href: '/news',     label: 'News',     icon: Newspaper  },
     ],
   },
 ]
