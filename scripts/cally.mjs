@@ -225,7 +225,7 @@ async function fetchEarnings(apiKey) {
       hour:        e.hour || 'amc',
       epsEstimate: e.epsEstimate ?? null,
     }))
-    .slice(0, 60)
+    .slice(0, 20)
 }
 
 async function curateEarnings(earnings, geminiKeys) {
