@@ -157,30 +157,57 @@ async function fetchGcal(clientId, clientSecret, refreshToken) {
   }))
 }
 
+// Curated list of high-importance FRED release IDs + labels
+const FRED_WATCHLIST = [
+  { id: '10',  name: 'Consumer Price Index',               type: 'Inflation'    },
+  { id: '46',  name: 'Producer Price Index',               type: 'Inflation'    },
+  { id: '53',  name: 'Gross Domestic Product',             type: 'GDP'          },
+  { id: '50',  name: 'Employment Situation',               type: 'Labor'        },
+  { id: '11',  name: 'Unemployment Insurance Weekly Claims', type: 'Labor'      },
+  { id: '175', name: 'Advance Monthly Sales for Retail',   type: 'Consumer'     },
+  { id: '55',  name: 'Personal Income and Outlays (PCE)',  type: 'Inflation'    },
+  { id: '54',  name: 'Industrial Production',              type: 'Production'   },
+  { id: '233', name: 'New Residential Construction',       type: 'Housing'      },
+  { id: '22',  name: 'FOMC Press Release',                 type: 'Fed Policy'   },
+  { id: '180', name: 'ISM Manufacturing PMI',              type: 'PMI'          },
+  { id: '181', name: 'ISM Services PMI',                   type: 'PMI'          },
+  { id: '111', name: 'Durable Goods Orders',               type: 'Production'   },
+  { id: '232', name: 'Existing Home Sales',                type: 'Housing'      },
+]
+
 // ── FRED ──────────────────────────────────────────────────────────────────────
 async function fetchFred(apiKey) {
   log('Fetching FRED releases...')
   const today = toET(new Date())
   const in7   = toET(daysFromNow(7))
-  const data  = await fetchJSON(
-    `https://api.stlouisfed.org/fred/releases/dates?api_key=${apiKey}&realtime_start=${today}&realtime_end=${in7}&include_release_dates_with_no_data=true&file_type=json`
+
+  const results = []
+  await Promise.allSettled(
+    FRED_WATCHLIST.map(async ({ id, name, type }) => {
+      try {
+        const data = await fetchJSON(
+          `https://api.stlouisfed.org/fred/release/dates?api_key=${apiKey}&release_id=${id}&realtime_start=${today}&realtime_end=${in7}&file_type=json`
+        )
+        for (const r of (data.release_dates || [])) {
+          if (r.date >= today && r.date <= in7) {
+            results.push({ date: r.date, release_name: name, release_id: id, type })
+          }
+        }
+      } catch {}
+    })
   )
-  return (data.release_dates || []).map(r => ({
-    date:         r.date,
-    release_name: r.release_name,
-    release_id:   String(r.release_id),
-  }))
+
+  results.sort((a, b) => a.date.localeCompare(b.date))
+  return results
 }
 
 // ── Gemini FRED curation ──────────────────────────────────────────────────────
 async function curateFred(releases, apiKey) {
   log(`Curating ${releases.length} FRED releases with Gemini...`)
   if (releases.length === 0) return []
-  if (releases.length <= 10) return releases.map(r => ({ ...r, type: 'Economic' }))
+  if (releases.length <= 7) return releases
 
-  const prompt = `You are a macro analyst. From this list of FRED economic data releases this week, select only the 8-10 most market-moving ones. Prioritize: CPI, PPI, GDP, NFP, unemployment, retail sales, FOMC, PCE, PMI, housing starts, durable goods. For each selected release add a short "type" label (e.g. "Inflation", "Labor", "GDP", "Fed Policy", "Consumer"). Return ONLY a JSON array with fields: date, release_name, release_id, type. No markdown, no explanation.
-
-${JSON.stringify(releases)}`
+  const prompt = `You are a macro analyst. From this list of upcoming FRED data releases, pick the 7 most market-moving. Return ONLY a JSON array with the same fields. No markdown, no explanation.\n\n${JSON.stringify(releases)}`
 
   const res = await fetchJSON(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -189,18 +216,18 @@ ${JSON.stringify(releases)}`
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         contents:         [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+        generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
       }),
     }
   )
 
-  const raw = res.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+  const raw   = res.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
   const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   try {
     return JSON.parse(clean)
   } catch {
-    log('Gemini FRED parse failed, using top 10 raw releases')
-    return releases.slice(0, 10).map(r => ({ ...r, type: 'Economic' }))
+    log('Gemini parse failed, returning all watchlist releases')
+    return releases
   }
 }
 
@@ -262,7 +289,7 @@ async function main() {
       .catch(e => log(`ERROR Google: ${e.message}`)),
 
     fetchFred(env.FRED_API_KEY)
-      .then(releases => curateFred(releases, env.GEMINI_API_KEY))
+      .then(r  => curateFred(r, env.GEMINI_API_KEY))
       .then(r  => { results.economic = r; log(`FRED: ${r.length} curated releases`) })
       .catch(e => log(`ERROR FRED: ${e.message}`)),
 
