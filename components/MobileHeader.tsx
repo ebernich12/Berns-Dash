@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
@@ -21,8 +21,18 @@ const nav = [
 
 export default function MobileHeader() {
   const [open, setOpen] = useState(false)
+  const [time, setTime] = useState('')
   const path = usePathname()
   const current = nav.find(n => n.href === path)
+
+  useEffect(() => {
+    function tick() {
+      setTime(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }))
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   return (
     <>
@@ -31,9 +41,12 @@ export default function MobileHeader() {
           <p className="text-sm font-semibold text-white leading-none">Ethan Bernich</p>
           {current && <p className="text-xs text-muted mt-0.5">{current.label}</p>}
         </div>
-        <button onClick={() => setOpen(true)} className="text-dim hover:text-white transition-colors p-1">
-          <Menu size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          {time && <p className="text-xs font-mono text-dim tabular-nums">{time}</p>}
+          <button onClick={() => setOpen(true)} className="text-dim hover:text-white transition-colors p-1">
+            <Menu size={20} />
+          </button>
+        </div>
       </header>
 
       {/* Drawer overlay */}

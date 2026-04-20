@@ -3,6 +3,7 @@ import './globals.css'
 import Sidebar from '@/components/Sidebar'
 import AgentStatus from '@/components/AgentStatus'
 import MobileHeader from '@/components/MobileHeader'
+import Clock from '@/components/Clock'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Desktop sidebar */}
         <aside className="hidden md:flex fixed left-0 top-0 h-screen w-48 bg-panel border-r border-border flex-col z-10">
           <Sidebar />
+          <Clock />
           <AgentStatus />
         </aside>
 
