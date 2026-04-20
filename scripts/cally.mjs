@@ -199,13 +199,13 @@ async function curateEcon(events, geminiKeys) {
 
   const prompt = `You are a macro analyst. From this list of upcoming US economic data releases, pick the top 7 most market-moving (or all if fewer than 7). For each, add a "summary" field: one sentence on what this release measures and why traders watch it. Return ONLY a JSON array with fields: event, date, time, impact, summary. No markdown, no explanation.\n\n${JSON.stringify(events)}`
 
-  const raw   = await geminiCall(prompt, geminiKeys)
-  const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   try {
+    const raw   = await geminiCall(prompt, geminiKeys)
+    const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     return JSON.parse(clean)
-  } catch {
-    log('Gemini econ parse failed, returning all events')
-    return events
+  } catch (e) {
+    log(`Gemini econ failed (${e.message}), returning raw events`)
+    return events.slice(0, 7)
   }
 }
 
@@ -234,12 +234,12 @@ async function curateEarnings(earnings, geminiKeys) {
 
   const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the top 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "summary" field: one sentence on what to watch for in their report. Return ONLY a JSON array with fields: symbol, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
 
-  const raw   = await geminiCall(prompt, geminiKeys)
-  const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   try {
+    const raw   = await geminiCall(prompt, geminiKeys)
+    const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     return JSON.parse(clean)
-  } catch {
-    log('Gemini earnings parse failed, returning top 7 by default')
+  } catch (e) {
+    log(`Gemini earnings failed (${e.message}), returning top 7 by default`)
     return earnings.slice(0, 7)
   }
 }
@@ -288,11 +288,13 @@ async function main() {
         const econ = await fetchEcon(env.FINNHUB_API_KEY)
         results.economic = await curateEcon(econ, geminiKeys)
         log(`Econ: ${results.economic.length} curated events`)
+      } catch (e) { log(`ERROR Econ: ${e.message}`) }
+      try {
         await new Promise(r => setTimeout(r, 4000))
         const earn = await fetchEarnings(env.FINNHUB_API_KEY)
         results.earnings = await curateEarnings(earn, geminiKeys)
         log(`Earnings: ${results.earnings.length} curated reports`)
-      } catch (e) { log(`ERROR Econ/Earnings: ${e.message}`) }
+      } catch (e) { log(`ERROR Earnings: ${e.message}`) }
     })(),
   ])
 
