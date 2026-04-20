@@ -3,12 +3,11 @@ import HomeModules from '@/components/HomeModules'
 
 export const dynamic = 'force-dynamic'
 
-function parseLocal(d: string) {
-  return d.includes('T') ? new Date(d) : new Date(`${d}T12:00:00`)
-}
-
 function daysUntil(dateStr: string) {
-  const diff = Math.ceil((parseLocal(dateStr).getTime() - Date.now()) / 86400_000)
+  const today = new Date().toLocaleDateString('en-CA')
+  const [ty, tm, td] = today.split('-').map(Number)
+  const [dy, dm, dd] = dateStr.slice(0, 10).split('-').map(Number)
+  const diff = Math.round((Date.UTC(dy, dm-1, dd) - Date.UTC(ty, tm-1, td)) / 86400_000)
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Tomorrow'
   return `${diff}d`
@@ -26,13 +25,15 @@ export default async function Home() {
   const canvas: any[] = calData?.canvas ?? []
   const gcal: any[]   = calData?.google ?? []
 
+  const todayStr = new Date().toLocaleDateString('en-CA')
+
   const nextAssignment = canvas
-    .filter(e => parseLocal(e.date).getTime() >= Date.now() - 3600_000)
-    .sort((a, b) => parseLocal(a.date).getTime() - parseLocal(b.date).getTime())[0]
+    .filter(e => e.date.slice(0, 10) >= todayStr)
+    .sort((a, b) => a.date.localeCompare(b.date))[0]
 
   const upcomingEvents = gcal
-    .filter(e => parseLocal(e.date).getTime() >= Date.now() - 3600_000)
-    .sort((a, b) => parseLocal(a.date).getTime() - parseLocal(b.date).getTime())
+    .filter(e => e.date.slice(0, 10) >= todayStr)
+    .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 3)
 
   const spy = trading?.quotes?.['SPY']
