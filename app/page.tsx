@@ -1,12 +1,13 @@
 import Link from 'next/link'
 
 const modules = [
-  { href: '/classes',  label: 'Classes',  desc: 'Courses & grades',              tag: 'UNH'     },
-  { href: '/finance',  label: 'Finance',  desc: 'Markets · Macro · Tickers',     tag: 'Finance' },
-  { href: '/calendar', label: 'Calendar', desc: 'Macro events · Earnings',       tag: 'Finance' },
-  { href: '/news',     label: 'News',     desc: 'Headlines · Sentiment',         tag: 'Finance' },
-  { href: '/trading',  label: 'Trading',  desc: 'Bot · Positions · Signals',     tag: 'Trading' },
-  { href: '/music',    label: 'Music',    desc: 'Gigs · Socials · Lost River',   tag: 'Music'   },
+  { href: '/',         label: 'Home',     color: '#f5f5f7' },
+  { href: '/calendar', label: 'Calendar', color: '#0a84ff' },
+  { href: '/music',    label: 'Music',    color: '#bf5af2' },
+  { href: '/news',     label: 'News',     color: '#ff9f0a' },
+  { href: '/classes',  label: 'Classes',  color: '#30d158' },
+  { href: '/finance',  label: 'Finance',  color: '#64d2ff' },
+  { href: '/trading',  label: 'Trading',  color: '#ffd60a' },
 ]
 
 export default function Home() {
@@ -24,17 +25,14 @@ export default function Home() {
       <div className="mb-10">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Modules</p>
         <div className="grid grid-cols-3 gap-3">
-          {modules.map(m => (
+          {modules.filter(m => m.href !== '/').map(m => (
             <Link
               key={m.href}
               href={m.href}
-              className="group bg-card border border-border rounded-xl p-5 hover:border-accent/40 hover:bg-white/[0.02] transition-all"
+              className="group bg-card border border-border rounded-2xl p-5 hover:bg-white/[0.02] transition-all overflow-hidden relative"
+              style={{ borderLeftColor: m.color, borderLeftWidth: '2px' }}
             >
-              <div className="flex items-start justify-between">
-                <p className="font-medium text-white group-hover:text-accent transition-colors">{m.label}</p>
-                <span className="text-2xs text-muted font-mono mt-0.5">{m.tag}</span>
-              </div>
-              <p className="text-xs text-dim mt-1.5">{m.desc}</p>
+              <p className="font-medium text-white group-hover:opacity-80 transition-opacity" style={{ color: m.color }}>{m.label}</p>
             </Link>
           ))}
         </div>

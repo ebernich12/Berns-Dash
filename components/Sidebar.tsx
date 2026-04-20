@@ -10,13 +10,13 @@ import {
 } from 'lucide-react'
 
 const nav = [
-  { href: '/',         label: 'Home',     icon: LayoutDashboard },
-  { href: '/calendar', label: 'Calendar', icon: Calendar        },
-  { href: '/music',    label: 'Music',    icon: Music           },
-  { href: '/news',     label: 'News',     icon: Newspaper       },
-  { href: '/classes',  label: 'Classes',  icon: BookOpen        },
-  { href: '/finance',  label: 'Finance',  icon: LineChart       },
-  { href: '/trading',  label: 'Trading',  icon: TrendingUp      },
+  { href: '/',         label: 'Home',     icon: LayoutDashboard, color: '#f5f5f7' },
+  { href: '/calendar', label: 'Calendar', icon: Calendar,        color: '#0a84ff' },
+  { href: '/music',    label: 'Music',    icon: Music,           color: '#bf5af2' },
+  { href: '/news',     label: 'News',     icon: Newspaper,       color: '#ff9f0a' },
+  { href: '/classes',  label: 'Classes',  icon: BookOpen,        color: '#30d158' },
+  { href: '/finance',  label: 'Finance',  icon: LineChart,       color: '#64d2ff' },
+  { href: '/trading',  label: 'Trading',  icon: TrendingUp,      color: '#ffd60a' },
 ]
 
 export default function Sidebar() {
@@ -30,7 +30,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 px-2 overflow-y-auto">
-        {nav.map(({ href, label, icon: Icon }) => {
+        {nav.map(({ href, label, icon: Icon, color }) => {
           const active = path === href
           return (
             <Link
@@ -38,12 +38,10 @@ export default function Sidebar() {
               href={href}
               className={clsx(
                 'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm transition-all',
-                active
-                  ? 'text-white bg-white/5'
-                  : 'text-dim hover:text-text hover:bg-white/[0.03]'
+                active ? 'text-white bg-white/5' : 'text-dim hover:text-text hover:bg-white/[0.03]'
               )}
             >
-              <Icon size={14} strokeWidth={active ? 2 : 1.5} />
+              <Icon size={14} strokeWidth={active ? 2 : 1.5} style={{ color: active ? color : undefined }} />
               {label}
             </Link>
           )
