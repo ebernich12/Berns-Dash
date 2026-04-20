@@ -10,4 +10,11 @@ export async function getSnapshot(agent: string): Promise<any | null> {
   return res.rows[0]?.data ?? null
 }
 
+export async function getAgentStatuses(): Promise<{ agent: string; updated_at: string }[]> {
+  const res = await pool.query(
+    'SELECT agent, updated_at FROM agent_snapshots ORDER BY agent'
+  )
+  return res.rows
+}
+
 export { pool }
