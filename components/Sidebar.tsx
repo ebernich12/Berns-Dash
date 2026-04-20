@@ -16,7 +16,7 @@ const nav = [
   { href: '/news',     label: 'News',     icon: Newspaper,       color: '#ff9f0a' },
   { href: '/classes',  label: 'Classes',  icon: BookOpen,        color: '#30d158' },
   { href: '/finance',  label: 'Finance',  icon: LineChart,       color: '#64d2ff' },
-  { href: '/trading',  label: 'Trading',  icon: TrendingUp,      color: '#ffd60a' },
+  { href: '/trading',  label: 'Trading',  icon: TrendingUp,      color: '#ff453a' },
 ]
 
 export default function Sidebar() {
@@ -41,7 +41,7 @@ export default function Sidebar() {
                 active ? 'text-white bg-white/5' : 'text-dim hover:text-text hover:bg-white/[0.03]'
               )}
             >
-              <Icon size={14} strokeWidth={active ? 2 : 1.5} style={{ color: active ? color : undefined }} />
+              <Icon size={14} strokeWidth={active ? 2 : 1.5} style={{ color }} />
               {label}
             </Link>
           )

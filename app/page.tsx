@@ -7,7 +7,7 @@ const modules = [
   { href: '/news',     label: 'News',     color: '#ff9f0a' },
   { href: '/classes',  label: 'Classes',  color: '#30d158' },
   { href: '/finance',  label: 'Finance',  color: '#64d2ff' },
-  { href: '/trading',  label: 'Trading',  color: '#ffd60a' },
+  { href: '/trading',  label: 'Trading',  color: '#ff453a' },
 ]
 
 export default function Home() {
