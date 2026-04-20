@@ -157,57 +157,25 @@ async function fetchGcal(clientId, clientSecret, refreshToken) {
   }))
 }
 
-// Curated list of high-importance FRED release IDs + labels
-const FRED_WATCHLIST = [
-  { id: '10',  name: 'Consumer Price Index',               type: 'Inflation'    },
-  { id: '46',  name: 'Producer Price Index',               type: 'Inflation'    },
-  { id: '53',  name: 'Gross Domestic Product',             type: 'GDP'          },
-  { id: '50',  name: 'Employment Situation',               type: 'Labor'        },
-  { id: '11',  name: 'Unemployment Insurance Weekly Claims', type: 'Labor'      },
-  { id: '175', name: 'Advance Monthly Sales for Retail',   type: 'Consumer'     },
-  { id: '55',  name: 'Personal Income and Outlays (PCE)',  type: 'Inflation'    },
-  { id: '54',  name: 'Industrial Production',              type: 'Production'   },
-  { id: '233', name: 'New Residential Construction',       type: 'Housing'      },
-  { id: '22',  name: 'FOMC Press Release',                 type: 'Fed Policy'   },
-  { id: '180', name: 'ISM Manufacturing PMI',              type: 'PMI'          },
-  { id: '181', name: 'ISM Services PMI',                   type: 'PMI'          },
-  { id: '111', name: 'Durable Goods Orders',               type: 'Production'   },
-  { id: '232', name: 'Existing Home Sales',                type: 'Housing'      },
-]
-
-// ── FRED ──────────────────────────────────────────────────────────────────────
-async function fetchFred(apiKey) {
-  log('Fetching FRED releases...')
+// ── Economic Calendar (Finnhub) ───────────────────────────────────────────────
+async function fetchEcon(apiKey) {
+  log('Fetching Finnhub economic calendar...')
   const today = toET(new Date())
   const in7   = toET(daysFromNow(7))
-
-  const results = []
-  await Promise.allSettled(
-    FRED_WATCHLIST.map(async ({ id, name, type }) => {
-      try {
-        const data = await fetchJSON(
-          `https://api.stlouisfed.org/fred/release/dates?api_key=${apiKey}&release_id=${id}&sort_order=asc&file_type=json`
-        )
-        for (const r of (data.release_dates || [])) {
-          if (r.date >= today && r.date <= in7) {
-            results.push({ date: r.date, release_name: name, release_id: id, type })
-          }
-        }
-      } catch {}
-    })
+  const data  = await fetchJSON(
+    `https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${in7}&token=${apiKey}`
   )
-
-  results.sort((a, b) => a.date.localeCompare(b.date))
-  return results
+  return (data.economicCalendar || [])
+    .filter(e => e.country === 'US' && e.impact === 'high')
+    .map(e => ({ event: e.event, date: e.date, time: e.time || null, impact: e.impact }))
 }
 
-// ── Gemini FRED curation ──────────────────────────────────────────────────────
-async function curateFred(releases, apiKey) {
-  log(`Curating ${releases.length} FRED releases with Gemini...`)
-  if (releases.length === 0) return []
-  if (releases.length <= 7) return releases
+// ── Gemini econ curation ──────────────────────────────────────────────────────
+async function curateEcon(events, apiKey) {
+  log(`Curating ${events.length} economic events with Gemini...`)
+  if (events.length === 0) return []
 
-  const prompt = `You are a macro analyst. From this list of upcoming FRED data releases, pick the 7 most market-moving. For each, add a "summary" field: one sentence on what this release measures and why traders watch it. Return ONLY a JSON array with fields: date, release_name, release_id, type, summary. No markdown, no explanation.\n\n${JSON.stringify(releases)}`
+  const prompt = `You are a macro analyst. From this list of upcoming US economic data releases, pick the top 7 most market-moving (or all if fewer than 7). For each, add a "summary" field: one sentence on what this release measures and why traders watch it. Return ONLY a JSON array with fields: event, date, time, impact, summary. No markdown, no explanation.\n\n${JSON.stringify(events)}`
 
   const res = await fetchJSON(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -226,8 +194,8 @@ async function curateFred(releases, apiKey) {
   try {
     return JSON.parse(clean)
   } catch {
-    log('Gemini parse failed, returning all watchlist releases')
-    return releases
+    log('Gemini econ parse failed, returning all events')
+    return events
   }
 }
 
@@ -253,9 +221,8 @@ async function fetchEarnings(apiKey) {
 async function curateEarnings(earnings, apiKey) {
   log(`Curating ${earnings.length} earnings reports with Gemini...`)
   if (earnings.length === 0) return []
-  if (earnings.length <= 7) return earnings
 
-  const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "summary" field: one sentence on what to watch for in their report. Return ONLY a JSON array with fields: symbol, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
+  const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the top 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "summary" field: one sentence on what to watch for in their report. Return ONLY a JSON array with fields: symbol, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
 
   const res = await fetchJSON(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -301,7 +268,7 @@ async function main() {
   const env = loadEnv(ENV_PATH)
 
   const required = ['CANVAS_ICS_URL','GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET',
-                    'GOOGLE_REFRESH_TOKEN','FRED_API_KEY','FINNHUB_API_KEY',
+                    'GOOGLE_REFRESH_TOKEN','FINNHUB_API_KEY',
                     'GEMINI_API_KEY','CRON_SECRET']
   const missing = required.filter(k => !env[k])
   if (missing.length) { log(`Missing env vars: ${missing.join(', ')}`); process.exit(1) }
@@ -319,14 +286,14 @@ async function main() {
 
     (async () => {
       try {
-        const fred = await fetchFred(env.FRED_API_KEY)
-        results.economic = await curateFred(fred, env.GEMINI_API_KEY)
-        log(`FRED: ${results.economic.length} curated releases`)
+        const econ = await fetchEcon(env.FINNHUB_API_KEY)
+        results.economic = await curateEcon(econ, env.GEMINI_API_KEY)
+        log(`Econ: ${results.economic.length} curated events`)
         await new Promise(r => setTimeout(r, 4000)) // avoid Gemini rate limit
         const earn = await fetchEarnings(env.FINNHUB_API_KEY)
         results.earnings = await curateEarnings(earn, env.GEMINI_API_KEY)
         log(`Earnings: ${results.earnings.length} curated reports`)
-      } catch (e) { log(`ERROR FRED/Earnings: ${e.message}`) }
+      } catch (e) { log(`ERROR Econ/Earnings: ${e.message}`) }
     })(),
   ])
 

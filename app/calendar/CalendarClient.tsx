@@ -60,7 +60,7 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
 
   const allCanvas   = canvas.filter(e => Math.ceil((parseLocalDate(e.date).getTime() - Date.now()) / 86400_000) >= 0)
   const gcal7       = gcal.filter(e => isWithin7Days(e.date))
-  const econ7       = econ.filter(e => isWithin7Days(e.date ?? e.time?.slice(0, 10)))
+  const econ7       = econ.filter(e => isWithin7Days(e.date))
   const earnings7   = earnings.filter(e => isWithin7Days(e.date))
 
   // Show all upcoming canvas, hide checked ones, but always show next 7 unchecked
@@ -133,12 +133,12 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
             {econ7.slice(0, 7).length > 0 ? econ7.slice(0, 7).map((e: any, i: number) => (
               <div key={i} className="py-2.5 border-b border-border last:border-0">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm text-white">{e.release_name ?? e.event}</p>
-                  <span className="text-xs font-mono text-dim flex-shrink-0 mt-0.5">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
+                  <p className="text-sm text-white">{e.event ?? e.release_name}</p>
+                  <span className="text-xs font-mono text-dim flex-shrink-0 mt-0.5">{daysUntil(e.date)}</span>
                 </div>
                 {e.summary
                   ? <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>
-                  : <p className="text-xs text-muted mt-1">{e.date ?? e.time?.slice(0, 10)}</p>
+                  : <p className="text-xs text-muted mt-1">{e.date}</p>
                 }
               </div>
             )) : (
