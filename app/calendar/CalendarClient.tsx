@@ -130,13 +130,16 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
         <div>
           <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Economic Releases</p>
           <Card>
-            {econ7.length > 0 ? econ7.map((e: any, i: number) => (
+            {econ7.slice(0, 7).length > 0 ? econ7.slice(0, 7).map((e: any, i: number) => (
               <div key={i} className="py-2.5 border-b border-border last:border-0">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <p className="text-sm text-white">{e.release_name ?? e.event}</p>
-                  <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
+                  <span className="text-xs font-mono text-dim flex-shrink-0 mt-0.5">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
                 </div>
-                {e.summary && <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>}
+                {e.summary
+                  ? <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>
+                  : <p className="text-xs text-muted mt-1">{e.date ?? e.time?.slice(0, 10)}</p>
+                }
               </div>
             )) : (
               <p className="text-sm text-dim py-2">No releases this week.</p>
@@ -147,16 +150,24 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
         <div>
           <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings</p>
           <Card>
-            {earnings7.length > 0 ? earnings7.map((e: any, i: number) => (
+            {earnings7.slice(0, 7).length > 0 ? earnings7.slice(0, 7).map((e: any, i: number) => (
               <div key={i} className="py-2.5 border-b border-border last:border-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-mono text-accent">{e.symbol}</p>
-                  <div className="text-right text-xs text-muted ml-2 flex-shrink-0">
-                    <p>{daysUntil(e.date)} · {e.hour?.toUpperCase()}</p>
-                    <p>EPS est: {e.epsEstimate ?? '—'}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm text-white">
+                      <span className="font-mono text-accent">{e.symbol}</span>
+                      {e.name && <span className="text-dim"> — {e.name}</span>}
+                    </p>
+                    {e.summary
+                      ? <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>
+                      : <p className="text-xs text-muted mt-1">EPS est: {e.epsEstimate ?? '—'}</p>
+                    }
+                  </div>
+                  <div className="text-right text-xs text-muted flex-shrink-0 mt-0.5">
+                    <p>{daysUntil(e.date)}</p>
+                    <p>{e.hour?.toUpperCase()}</p>
                   </div>
                 </div>
-                {e.summary && <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>}
               </div>
             )) : (
               <p className="text-sm text-dim py-2">No earnings this week.</p>

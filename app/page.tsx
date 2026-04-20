@@ -1,17 +1,7 @@
-import Link from 'next/link'
 import { getSnapshot } from '@/lib/db'
+import HomeModules from '@/components/HomeModules'
 
 export const dynamic = 'force-dynamic'
-
-const modules = [
-  { href: '/',         label: 'Home',     color: '#f5f5f7' },
-  { href: '/calendar', label: 'Calendar', color: '#0a84ff' },
-  { href: '/music',    label: 'Music',    color: '#bf5af2' },
-  { href: '/news',     label: 'News',     color: '#ff9f0a' },
-  { href: '/classes',  label: 'Classes',  color: '#30d158' },
-  { href: '/finance',  label: 'Finance',  color: '#64d2ff' },
-  { href: '/trading',  label: 'Trading',  color: '#ff453a' },
-]
 
 function parseLocal(d: string) {
   return d.includes('T') ? new Date(d) : new Date(`${d}T12:00:00`)
@@ -25,27 +15,41 @@ function daysUntil(dateStr: string) {
 }
 
 export default async function Home() {
-  const [calData, trading] = await Promise.all([
+  const [calData, trading, finance, school, music] = await Promise.all([
     getSnapshot('calendar'),
     getSnapshot('trading'),
+    getSnapshot('finance'),
+    getSnapshot('school'),
+    getSnapshot('music'),
   ])
 
-  const canvas: any[]   = calData?.canvas ?? []
-  const gcal: any[]     = calData?.google ?? []
-  const today           = new Date().toLocaleDateString('en-CA')
-  const todayEvents     = gcal.filter(e => e.date === today)
+  const canvas: any[] = calData?.canvas ?? []
+  const gcal: any[]   = calData?.google ?? []
 
   const nextAssignment = canvas
-    .filter(e => Math.ceil((parseLocal(e.date).getTime() - Date.now()) / 86400_000) >= 0)
+    .filter(e => parseLocal(e.date).getTime() >= Date.now() - 3600_000)
     .sort((a, b) => parseLocal(a.date).getTime() - parseLocal(b.date).getTime())[0]
 
+  const upcomingEvents = gcal
+    .filter(e => parseLocal(e.date).getTime() >= Date.now() - 3600_000)
+    .sort((a, b) => parseLocal(a.date).getTime() - parseLocal(b.date).getTime())
+    .slice(0, 3)
+
   const spy = trading?.quotes?.['SPY']
+
+  const summaries: Record<string, string | null> = {
+    calendar: calData?.summary ?? null,
+    trading:  trading?.summary  ?? null,
+    finance:  finance?.summary  ?? null,
+    school:   school?.summary   ?? null,
+    music:    music?.summary    ?? null,
+  }
 
   return (
     <div>
       <h1 className="text-3xl font-semibold text-white tracking-tight mb-8">Hi Ethan</h1>
 
-      {/* Summary */}
+      {/* Summary card */}
       <div className="bg-card border border-border rounded-2xl p-5 mb-8 space-y-4">
         {nextAssignment && (
           <div className="flex items-start justify-between">
@@ -58,13 +62,13 @@ export default async function Home() {
           </div>
         )}
 
-        {todayEvents.length > 0 && (
+        {upcomingEvents.length > 0 && (
           <div>
-            <p className="text-2xs text-muted font-mono uppercase tracking-widest mb-1">Today</p>
-            {todayEvents.slice(0, 3).map((e: any) => (
+            <p className="text-2xs text-muted font-mono uppercase tracking-widest mb-1">Upcoming</p>
+            {upcomingEvents.map((e: any) => (
               <p key={e.id} className="text-sm text-white">
                 {e.title}
-                {e.time && <span className="text-dim text-xs"> · {e.time}</span>}
+                <span className="text-dim text-xs"> · {daysUntil(e.date)}{e.time ? ` · ${e.time}` : ''}</span>
               </p>
             ))}
           </div>
@@ -82,25 +86,14 @@ export default async function Home() {
           </div>
         )}
 
-        {!nextAssignment && todayEvents.length === 0 && !spy && (
+        {!nextAssignment && upcomingEvents.length === 0 && !spy && (
           <p className="text-sm text-dim">Agents are warming up — check back soon.</p>
         )}
       </div>
 
       {/* Modules */}
       <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Modules</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {modules.filter(m => m.href !== '/').map(m => (
-          <Link
-            key={m.href}
-            href={m.href}
-            className="group bg-card border border-border rounded-2xl p-5 hover:bg-white/[0.02] transition-all"
-            style={{ borderLeftColor: m.color, borderLeftWidth: '2px' }}
-          >
-            <p className="font-medium group-hover:opacity-80 transition-opacity" style={{ color: m.color }}>{m.label}</p>
-          </Link>
-        ))}
-      </div>
+      <HomeModules summaries={summaries} />
     </div>
   )
 }

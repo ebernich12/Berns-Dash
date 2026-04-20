@@ -207,7 +207,7 @@ async function curateFred(releases, apiKey) {
   if (releases.length === 0) return []
   if (releases.length <= 7) return releases
 
-  const prompt = `You are a macro analyst. From this list of upcoming FRED data releases, pick the 7 most market-moving. Return ONLY a JSON array with the same fields. No markdown, no explanation.\n\n${JSON.stringify(releases)}`
+  const prompt = `You are a macro analyst. From this list of upcoming FRED data releases, pick the 7 most market-moving. For each, add a "summary" field: one sentence on what this release measures and why traders watch it. Return ONLY a JSON array with fields: date, release_name, release_id, type, summary. No markdown, no explanation.\n\n${JSON.stringify(releases)}`
 
   const res = await fetchJSON(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -247,7 +247,36 @@ async function fetchEarnings(apiKey) {
       hour:        e.hour || 'amc',
       epsEstimate: e.epsEstimate ?? null,
     }))
-    .slice(0, 40)
+    .slice(0, 60)
+}
+
+async function curateEarnings(earnings, apiKey) {
+  log(`Curating ${earnings.length} earnings reports with Gemini...`)
+  if (earnings.length === 0) return []
+  if (earnings.length <= 7) return earnings
+
+  const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "summary" field: one sentence on what to watch for in their report. Return ONLY a JSON array with fields: symbol, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
+
+  const res = await fetchJSON(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        contents:         [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
+      }),
+    }
+  )
+
+  const raw   = res.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+  const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+  try {
+    return JSON.parse(clean)
+  } catch {
+    log('Gemini earnings parse failed, returning top 7 by default')
+    return earnings.slice(0, 7)
+  }
 }
 
 // ── Ingest ────────────────────────────────────────────────────────────────────
@@ -294,7 +323,8 @@ async function main() {
       .catch(e => log(`ERROR FRED: ${e.message}`)),
 
     fetchEarnings(env.FINNHUB_API_KEY)
-      .then(r  => { results.earnings = r; log(`Earnings: ${r.length} reports`) })
+      .then(r  => curateEarnings(r, env.GEMINI_API_KEY))
+      .then(r  => { results.earnings = r; log(`Earnings: ${r.length} curated reports`) })
       .catch(e => log(`ERROR Earnings: ${e.message}`)),
   ])
 
