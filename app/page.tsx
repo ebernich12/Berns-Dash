@@ -24,7 +24,7 @@ export default function Home() {
 
       <div className="mb-10">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Modules</p>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {modules.filter(m => m.href !== '/').map(m => (
             <Link
               key={m.href}

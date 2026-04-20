@@ -34,7 +34,7 @@ export default async function ClassesPage() {
       <PageHeader title="Classes" subtitle="Spring 2026 — UNH Paul College of Business" />
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <p className="text-xs text-muted uppercase tracking-widest mb-1">Cumulative GPA</p>
           <p className="text-2xl font-bold text-white">3.83</p>
@@ -57,7 +57,7 @@ export default async function ClassesPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Course table */}
         <div className="col-span-2">
           <Card title="Current Courses">

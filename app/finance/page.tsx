@@ -30,7 +30,7 @@ export default async function FinancePage() {
       {/* Markets */}
       <div className="mb-6">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Markets</p>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {TICKERS.map(sym => {
             const q  = quotes[sym]
             const up = q?.dp != null ? q.dp >= 0 : null
@@ -52,7 +52,7 @@ export default async function FinancePage() {
       {/* Macro */}
       <div className="mb-6">
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Macro · FRED</p>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {macro.length > 0 ? macro.map((m: any) => (
             <div key={m.id} className="bg-card border border-border rounded-xl p-4">
               <p className="text-xs text-muted mb-2">{m.label}</p>

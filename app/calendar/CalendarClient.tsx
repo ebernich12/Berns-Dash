@@ -63,7 +63,7 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
   const earnings7 = earnings.filter(e => isWithin7Days(e.date))
 
   return (
-    <div className="grid grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
       {/* Canvas — checkable since these are todos */}
       <div>

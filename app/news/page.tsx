@@ -33,7 +33,7 @@ export default async function NewsPage() {
       />
 
       {/* Sentiment cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {TICKERS.map(sym => {
           const d     = sentiment[sym]
           const score = d?.companyNewsScore ?? null
