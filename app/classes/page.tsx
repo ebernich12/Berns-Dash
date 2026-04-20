@@ -1,6 +1,7 @@
 import Card from '@/components/Card'
 import PageHeader from '@/components/PageHeader'
 import { getSnapshot } from '@/lib/db'
+import AssignmentsList from './AssignmentsList'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,15 +16,6 @@ const COURSES = [
 
 const TOTAL_CREDITS = COURSES.reduce((s, c) => s + c.credits, 0)
 
-function dueSoon(iso: string | null) {
-  if (!iso) return false
-  return new Date(iso).getTime() - Date.now() < 3 * 86400_000
-}
-
-function formatDue(iso: string | null) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-}
 
 export default async function ClassesPage() {
   const data        = await getSnapshot('school')
@@ -90,18 +82,7 @@ export default async function ClassesPage() {
         {/* Upcoming assignments */}
         <Card title="Upcoming Assignments">
           {assignments.length > 0 ? (
-            <div className="space-y-3">
-              {assignments.slice(0, 8).map((a: any) => (
-                <div key={a.id} className="border-b border-border pb-2 last:border-0 last:pb-0">
-                  <a href={a.html_url} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-white hover:text-accent leading-snug block">{a.name}</a>
-                  <p className={`text-xs mt-0.5 ${dueSoon(a.due_at) ? 'text-red' : 'text-muted'}`}>
-                    Due {formatDue(a.due_at)}
-                  </p>
-                  <p className="text-xs text-muted">{a.points_possible} pts · {a.course_name}</p>
-                </div>
-              ))}
-            </div>
+            <AssignmentsList assignments={assignments} />
           ) : (
             <p className="text-xs text-muted">Waiting for SchoolAgent.</p>
           )}

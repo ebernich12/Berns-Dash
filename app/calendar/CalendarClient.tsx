@@ -20,29 +20,6 @@ function isWithin7Days(dateStr: string) {
   return diff >= 0 && diff <= 7
 }
 
-function CheckableRow({ id, children }: { id: string; children: React.ReactNode }) {
-  const [checked, setChecked] = useState(false)
-
-  useEffect(() => {
-    setChecked(localStorage.getItem(`cal-check-${id}`) === '1')
-  }, [id])
-
-  function toggle() {
-    const next = !checked
-    setChecked(next)
-    localStorage.setItem(`cal-check-${id}`, next ? '1' : '0')
-  }
-
-  return (
-    <div className={`flex items-center gap-3 py-2.5 border-b border-border last:border-0 ${checked ? 'opacity-40' : ''}`}>
-      <button onClick={toggle} className="flex-shrink-0 w-4 h-4 rounded border border-border flex items-center justify-center hover:border-accent transition-colors">
-        {checked && <span className="text-accent text-xs">✓</span>}
-      </button>
-      <div className="flex-1 min-w-0">{children}</div>
-    </div>
-  )
-}
-
 function Row({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
@@ -57,33 +34,61 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
   econ: any[]
   earnings: any[]
 }) {
-  const canvas7   = canvas.filter(e => isWithin7Days(e.date))
-  const gcal7     = gcal.filter(e => isWithin7Days(e.date))
-  const econ7     = econ.filter(e => isWithin7Days(e.date ?? e.time?.slice(0, 10)))
-  const earnings7 = earnings.filter(e => isWithin7Days(e.date))
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const stored = localStorage.getItem('cal-hidden-canvas')
+    if (stored) setHidden(new Set(JSON.parse(stored)))
+  }, [])
+
+  function toggle(id: string) {
+    setHidden(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      localStorage.setItem('cal-hidden-canvas', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  const allCanvas   = canvas.filter(e => Math.ceil((parseLocalDate(e.date).getTime() - Date.now()) / 86400_000) >= 0)
+  const gcal7       = gcal.filter(e => isWithin7Days(e.date))
+  const econ7       = econ.filter(e => isWithin7Days(e.date ?? e.time?.slice(0, 10)))
+  const earnings7   = earnings.filter(e => isWithin7Days(e.date))
+
+  // Show all upcoming canvas, hide checked ones, but always show next 7 unchecked
+  const visibleCanvas = allCanvas.filter(e => !hidden.has(`canvas-${e.title}-${e.date}`)).slice(0, 7)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-      {/* Canvas — checkable since these are todos */}
+      {/* Canvas — check off to dismiss, next loads in */}
       <div>
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Canvas — Assignments</p>
         <Card>
-          {canvas7.length > 0 ? canvas7.map((e: any, i: number) => (
-            <CheckableRow key={i} id={`canvas-${e.title}-${e.date}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white">{e.title}</p>
-                  {e.course && <p className="text-xs text-dim">{e.course}</p>}
-                </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                  <span className={`text-xs px-2 py-0.5 rounded ${e.type === 'assignment' ? 'bg-accent/10 text-accent' : 'bg-border text-muted'}`}>{e.type}</span>
-                  <span className="text-xs font-mono text-dim">{daysUntil(e.date)}</span>
+          {visibleCanvas.length > 0 ? visibleCanvas.map((e: any, i: number) => {
+            const id = `canvas-${e.title}-${e.date}`
+            return (
+              <div key={i} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                <button
+                  onClick={() => toggle(id)}
+                  className="flex-shrink-0 w-4 h-4 rounded border border-border flex items-center justify-center hover:border-accent transition-colors"
+                >
+                  <span className="text-accent text-xs opacity-0 group-hover:opacity-100" />
+                </button>
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <div>
+                    <p className="text-sm text-white">{e.title}</p>
+                    {e.course && <p className="text-xs text-dim">{e.course}</p>}
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                    <span className={`text-xs px-2 py-0.5 rounded ${e.type === 'assignment' ? 'bg-accent/10 text-accent' : 'bg-border text-muted'}`}>{e.type}</span>
+                    <span className="text-xs font-mono text-dim">{daysUntil(e.date)}</span>
+                  </div>
                 </div>
               </div>
-            </CheckableRow>
-          )) : (
-            <p className="text-sm text-dim py-2">No assignments due in 7 days.</p>
+            )
+          }) : (
+            <p className="text-sm text-dim py-2">All caught up.</p>
           )}
         </Card>
       </div>
