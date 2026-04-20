@@ -3,15 +3,20 @@
 import { useState, useEffect } from 'react'
 import Card from '@/components/Card'
 
+function parseLocalDate(dateStr: string) {
+  // "2026-04-20" without a time component parses as UTC midnight, shifting the date in ET.
+  return dateStr.includes('T') ? new Date(dateStr) : new Date(`${dateStr}T12:00:00`)
+}
+
 function daysUntil(dateStr: string) {
-  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400_000)
+  const diff = Math.ceil((parseLocalDate(dateStr).getTime() - Date.now()) / 86400_000)
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Tomorrow'
   return `${diff}d`
 }
 
 function isWithin7Days(dateStr: string) {
-  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400_000)
+  const diff = Math.ceil((parseLocalDate(dateStr).getTime() - Date.now()) / 86400_000)
   return diff >= 0 && diff <= 7
 }
 
@@ -38,21 +43,29 @@ function CheckableRow({ id, children }: { id: string; children: React.ReactNode 
   )
 }
 
-export default function CalendarClient({ canvas, gcal, econ, earnings, macro }: {
+function Row({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+      {children}
+    </div>
+  )
+}
+
+export default function CalendarClient({ canvas, gcal, econ, earnings }: {
   canvas: any[]
   gcal: any[]
   econ: any[]
   earnings: any[]
-  macro: any[]
 }) {
-  const canvas7 = canvas.filter(e => isWithin7Days(e.date))
-  const gcal7 = gcal.filter(e => isWithin7Days(e.date))
-  const econ7 = econ.filter(e => isWithin7Days(e.date ?? e.time?.slice(0, 10)))
+  const canvas7   = canvas.filter(e => isWithin7Days(e.date))
+  const gcal7     = gcal.filter(e => isWithin7Days(e.date))
+  const econ7     = econ.filter(e => isWithin7Days(e.date ?? e.time?.slice(0, 10)))
+  const earnings7 = earnings.filter(e => isWithin7Days(e.date))
 
   return (
     <div className="grid grid-cols-3 gap-6">
 
-      {/* Canvas */}
+      {/* Canvas — checkable since these are todos */}
       <div>
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Canvas — Assignments</p>
         <Card>
@@ -80,20 +93,18 @@ export default function CalendarClient({ canvas, gcal, econ, earnings, macro }: 
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Google Calendar</p>
         <Card>
           {gcal7.length > 0 ? gcal7.map((e: any) => (
-            <CheckableRow key={e.id} id={`gcal-${e.id}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  {e.link ? (
-                    <a href={e.link} target="_blank" rel="noopener noreferrer"
-                      className="text-sm text-white hover:text-accent transition-colors">{e.title}</a>
-                  ) : (
-                    <p className="text-sm text-white">{e.title}</p>
-                  )}
-                  {e.time && <p className="text-xs text-dim">{e.time}</p>}
-                </div>
-                <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date)}</span>
+            <Row key={e.id}>
+              <div>
+                {e.link ? (
+                  <a href={e.link} target="_blank" rel="noopener noreferrer"
+                    className="text-sm text-white hover:text-accent transition-colors">{e.title}</a>
+                ) : (
+                  <p className="text-sm text-white">{e.title}</p>
+                )}
+                {e.time && <p className="text-xs text-dim">{e.time}</p>}
               </div>
-            </CheckableRow>
+              <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date)}</span>
+            </Row>
           )) : (
             <p className="text-sm text-dim py-2">No events in next 7 days.</p>
           )}
@@ -105,28 +116,24 @@ export default function CalendarClient({ canvas, gcal, econ, earnings, macro }: 
         <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">FRED & Earnings</p>
         <Card>
           {econ7.length > 0 ? econ7.map((e: any, i: number) => (
-            <CheckableRow key={i} id={`econ-${e.release_name ?? e.event}-${e.date ?? e.time}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white">{e.release_name ?? e.event}</p>
-                  <p className="text-xs text-dim">{e.type ?? (e.date ?? e.time?.slice(0, 10))}</p>
-                </div>
-                <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
+            <Row key={i}>
+              <div>
+                <p className="text-sm text-white">{e.release_name ?? e.event}</p>
+                <p className="text-xs text-dim">{e.type ?? (e.date ?? e.time?.slice(0, 10))}</p>
               </div>
-            </CheckableRow>
+              <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
+            </Row>
           )) : (
             <p className="text-sm text-dim py-2">No macro events this week.</p>
           )}
-          {earnings.filter(e => isWithin7Days(e.date)).map((e: any, i: number) => (
-            <CheckableRow key={`earn-${i}`} id={`earn-${e.symbol}-${e.date}`}>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-mono text-accent">{e.symbol}</p>
-                <div className="text-right text-xs text-muted ml-2 flex-shrink-0">
-                  <p>{e.date} · {e.hour?.toUpperCase()}</p>
-                  <p>EPS: {e.epsEstimate ?? '—'}</p>
-                </div>
+          {earnings7.map((e: any, i: number) => (
+            <Row key={`earn-${i}`}>
+              <p className="text-sm font-mono text-accent">{e.symbol}</p>
+              <div className="text-right text-xs text-muted ml-2 flex-shrink-0">
+                <p>{e.date} · {e.hour?.toUpperCase()}</p>
+                <p>EPS: {e.epsEstimate ?? '—'}</p>
               </div>
-            </CheckableRow>
+            </Row>
           ))}
         </Card>
       </div>

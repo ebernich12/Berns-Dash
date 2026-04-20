@@ -9,9 +9,8 @@ export default async function CalendarPage() {
 
   const canvas   = calData?.canvas   ?? []
   const gcal     = calData?.google   ?? []
-  const earnings = calData?.earnings    ?? []
-  const econ     = calData?.economic    ?? []
-  const macro    = calData?.macro       ?? []
+  const earnings = calData?.earnings ?? []
+  const econ     = calData?.economic ?? []
 
   return (
     <div>
@@ -21,7 +20,6 @@ export default async function CalendarPage() {
         gcal={gcal}
         econ={econ}
         earnings={earnings}
-        macro={macro}
       />
     </div>
   )
