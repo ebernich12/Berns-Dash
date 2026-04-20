@@ -101,6 +101,28 @@ async function fetchJSON(url, opts = {}) {
   return res.json()
 }
 
+async function geminiCall(prompt, keys) {
+  const keyList = Array.isArray(keys) ? keys : [keys]
+  for (const key of keyList) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          contents:         [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
+        }),
+      }
+    )
+    if (res.status === 429) { log(`Gemini key exhausted, trying next...`); continue }
+    if (!res.ok) { const b = await res.text().catch(() => ''); throw new Error(`Gemini HTTP ${res.status}: ${b.slice(0,200)}`) }
+    const data = await res.json()
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+  }
+  throw new Error('All Gemini API keys exhausted (429)')
+}
+
 // ── Canvas ────────────────────────────────────────────────────────────────────
 async function fetchCanvas(icsUrl) {
   log('Fetching Canvas ICS...')
@@ -171,25 +193,13 @@ async function fetchEcon(apiKey) {
 }
 
 // ── Gemini econ curation ──────────────────────────────────────────────────────
-async function curateEcon(events, apiKey) {
+async function curateEcon(events, geminiKeys) {
   log(`Curating ${events.length} economic events with Gemini...`)
   if (events.length === 0) return []
 
   const prompt = `You are a macro analyst. From this list of upcoming US economic data releases, pick the top 7 most market-moving (or all if fewer than 7). For each, add a "summary" field: one sentence on what this release measures and why traders watch it. Return ONLY a JSON array with fields: event, date, time, impact, summary. No markdown, no explanation.\n\n${JSON.stringify(events)}`
 
-  const res = await fetchJSON(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        contents:         [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
-      }),
-    }
-  )
-
-  const raw   = res.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+  const raw   = await geminiCall(prompt, geminiKeys)
   const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   try {
     return JSON.parse(clean)
@@ -218,25 +228,13 @@ async function fetchEarnings(apiKey) {
     .slice(0, 60)
 }
 
-async function curateEarnings(earnings, apiKey) {
+async function curateEarnings(earnings, geminiKeys) {
   log(`Curating ${earnings.length} earnings reports with Gemini...`)
   if (earnings.length === 0) return []
 
   const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the top 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "summary" field: one sentence on what to watch for in their report. Return ONLY a JSON array with fields: symbol, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
 
-  const res = await fetchJSON(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        contents:         [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
-      }),
-    }
-  )
-
-  const raw   = res.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+  const raw   = await geminiCall(prompt, geminiKeys)
   const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   try {
     return JSON.parse(clean)
@@ -273,6 +271,7 @@ async function main() {
   const missing = required.filter(k => !env[k])
   if (missing.length) { log(`Missing env vars: ${missing.join(', ')}`); process.exit(1) }
 
+  const geminiKeys = [env.GEMINI_API_KEY, env.GEMINI_API_KEY_2].filter(Boolean)
   const results = { canvas: [], google: [], economic: [], earnings: [] }
 
   await Promise.allSettled([
@@ -287,11 +286,11 @@ async function main() {
     (async () => {
       try {
         const econ = await fetchEcon(env.FINNHUB_API_KEY)
-        results.economic = await curateEcon(econ, env.GEMINI_API_KEY)
+        results.economic = await curateEcon(econ, geminiKeys)
         log(`Econ: ${results.economic.length} curated events`)
-        await new Promise(r => setTimeout(r, 4000)) // avoid Gemini rate limit
+        await new Promise(r => setTimeout(r, 4000))
         const earn = await fetchEarnings(env.FINNHUB_API_KEY)
-        results.earnings = await curateEarnings(earn, env.GEMINI_API_KEY)
+        results.earnings = await curateEarnings(earn, geminiKeys)
         log(`Earnings: ${results.earnings.length} curated reports`)
       } catch (e) { log(`ERROR Econ/Earnings: ${e.message}`) }
     })(),
