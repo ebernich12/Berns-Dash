@@ -152,21 +152,29 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
 
         <div>
           <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings</p>
-          <div className="rounded-2xl overflow-hidden border border-border">
-            <iframe
-              src={`https://www.tradingview.com/embed-widget/earnings/?locale=en#${encodeURIComponent(JSON.stringify({
-                colorTheme: 'dark',
-                isTransparent: true,
-                width: '100%',
-                height: 400,
-                largeChartUrl: '',
-              }))}`}
-              width="100%"
-              height="400"
-              frameBorder="0"
-              allowTransparency={true}
-            />
-          </div>
+          <Card>
+            {earnings7.slice(0, 7).length > 0 ? earnings7.slice(0, 7).map((e: any, i: number) => (
+              <div key={i} className="py-2.5 border-b border-border last:border-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm text-white">
+                      <span className="font-mono text-accent">{e.symbol}</span>
+                    </p>
+                    {e.summary
+                      ? <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>
+                      : <p className="text-xs text-muted mt-1">EPS est: {e.epsEstimate ?? '—'}</p>
+                    }
+                  </div>
+                  <div className="text-right text-xs text-muted flex-shrink-0 mt-0.5">
+                    <p>{daysUntil(e.date)}</p>
+                    <p>{e.hour?.toUpperCase()}</p>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-dim py-2">No earnings this week.</p>
+            )}
+          </Card>
         </div>
 
       </div>
