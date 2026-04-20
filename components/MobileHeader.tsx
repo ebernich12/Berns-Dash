@@ -38,8 +38,7 @@ export default function MobileHeader() {
     <>
       <header className="md:hidden fixed top-0 left-0 right-0 z-20 bg-panel border-b border-border flex items-center justify-between px-4 h-12">
         <div>
-          <p className="text-sm font-semibold text-white leading-none">Ethan Bernich</p>
-          {current && <p className="text-xs text-muted mt-0.5">{current.label}</p>}
+          <p className="text-sm font-semibold text-white leading-none">{current?.label ?? 'Dashboard'}</p>
         </div>
         <div className="flex items-center gap-3">
           {time && <p className="text-xs font-mono text-dim tabular-nums">{time}</p>}
@@ -56,8 +55,7 @@ export default function MobileHeader() {
           <nav className="relative w-56 bg-panel border-r border-border flex flex-col h-full">
             <div className="flex items-center justify-between px-5 pt-5 pb-4">
               <div>
-                <p className="text-sm font-semibold text-white">Ethan Bernich</p>
-                <p className="text-xs text-muted mt-0.5">Finance + Economics · UNH '28</p>
+                <p className="text-sm font-semibold text-white">Menu</p>
               </div>
               <button onClick={() => setOpen(false)} className="text-dim hover:text-white transition-colors p-1">
                 <X size={16} />

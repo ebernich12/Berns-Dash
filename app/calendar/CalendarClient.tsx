@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Card from '@/components/Card'
 
 function parseLocalDate(dateStr: string) {
@@ -35,11 +36,18 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
   earnings: any[]
 }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const router = useRouter()
 
   useEffect(() => {
     const stored = localStorage.getItem('cal-hidden-canvas')
     if (stored) setHidden(new Set(JSON.parse(stored)))
   }, [])
+
+  // Refresh server data every 5 minutes so dates/events stay current
+  useEffect(() => {
+    const id = setInterval(() => router.refresh(), 5 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [router])
 
   function toggle(id: string) {
     setHidden(prev => {
@@ -116,31 +124,46 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
         </Card>
       </div>
 
-      {/* FRED + Earnings */}
-      <div>
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">FRED & Earnings</p>
-        <Card>
-          {econ7.length > 0 ? econ7.map((e: any, i: number) => (
-            <Row key={i}>
-              <div>
-                <p className="text-sm text-white">{e.release_name ?? e.event}</p>
-                <p className="text-xs text-dim">{e.type ?? (e.date ?? e.time?.slice(0, 10))}</p>
+      {/* Economic Releases + Earnings stacked */}
+      <div className="flex flex-col gap-6">
+
+        <div>
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Economic Releases</p>
+          <Card>
+            {econ7.length > 0 ? econ7.map((e: any, i: number) => (
+              <div key={i} className="py-2.5 border-b border-border last:border-0">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-white">{e.release_name ?? e.event}</p>
+                  <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
+                </div>
+                {e.summary && <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>}
               </div>
-              <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date ?? e.time?.slice(0, 10))}</span>
-            </Row>
-          )) : (
-            <p className="text-sm text-dim py-2">No macro events this week.</p>
-          )}
-          {earnings7.map((e: any, i: number) => (
-            <Row key={`earn-${i}`}>
-              <p className="text-sm font-mono text-accent">{e.symbol}</p>
-              <div className="text-right text-xs text-muted ml-2 flex-shrink-0">
-                <p>{e.date} · {e.hour?.toUpperCase()}</p>
-                <p>EPS: {e.epsEstimate ?? '—'}</p>
+            )) : (
+              <p className="text-sm text-dim py-2">No releases this week.</p>
+            )}
+          </Card>
+        </div>
+
+        <div>
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings</p>
+          <Card>
+            {earnings7.length > 0 ? earnings7.map((e: any, i: number) => (
+              <div key={i} className="py-2.5 border-b border-border last:border-0">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-mono text-accent">{e.symbol}</p>
+                  <div className="text-right text-xs text-muted ml-2 flex-shrink-0">
+                    <p>{daysUntil(e.date)} · {e.hour?.toUpperCase()}</p>
+                    <p>EPS est: {e.epsEstimate ?? '—'}</p>
+                  </div>
+                </div>
+                {e.summary && <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>}
               </div>
-            </Row>
-          ))}
-        </Card>
+            )) : (
+              <p className="text-sm text-dim py-2">No earnings this week.</p>
+            )}
+          </Card>
+        </div>
+
       </div>
 
     </div>

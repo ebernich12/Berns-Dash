@@ -21,12 +21,12 @@ const nav = [
 
 export default function Sidebar() {
   const path = usePathname()
+  const current = nav.find(n => n.href === path)
 
   return (
     <>
-      <div className="px-5 pt-6 pb-5">
-        <p className="text-base font-semibold text-white tracking-tight">Ethan Bernich</p>
-        <p className="text-xs text-muted mt-0.5">Finance + Economics · UNH '28</p>
+      <div className="px-5 pt-6 pb-4">
+        <p className="text-base font-semibold text-white tracking-tight">{current?.label ?? 'Dashboard'}</p>
       </div>
 
       <nav className="flex-1 px-2 overflow-y-auto">
