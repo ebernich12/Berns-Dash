@@ -129,22 +129,22 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
 
         <div>
           <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Economic Releases</p>
-          <Card>
-            {econ7.slice(0, 7).length > 0 ? econ7.slice(0, 7).map((e: any, i: number) => (
-              <div key={i} className="py-2.5 border-b border-border last:border-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm text-white">{e.event ?? e.release_name}</p>
-                  <span className="text-xs font-mono text-dim flex-shrink-0 mt-0.5">{daysUntil(e.date)}</span>
-                </div>
-                {e.summary
-                  ? <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>
-                  : <p className="text-xs text-muted mt-1">{e.date}</p>
-                }
-              </div>
-            )) : (
-              <p className="text-sm text-dim py-2">No releases this week.</p>
-            )}
-          </Card>
+          <div className="rounded-2xl overflow-hidden border border-border">
+            <iframe
+              src={`https://www.tradingview.com/embed-widget/events/?locale=en#${encodeURIComponent(JSON.stringify({
+                colorTheme: 'dark',
+                isTransparent: true,
+                width: '100%',
+                height: 400,
+                importanceFilter: '1',
+                countryFilter: 'us',
+              }))}`}
+              width="100%"
+              height="400"
+              frameBorder="0"
+              allowTransparency={true}
+            />
+          </div>
         </div>
 
         <div>
