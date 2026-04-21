@@ -138,12 +138,12 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
                 colorTheme: 'dark',
                 isTransparent: true,
                 width: '100%',
-                height: 400,
+                height: 550,
                 importanceFilter: '1',
                 countryFilter: 'us',
               }))}`}
               width="100%"
-              height="400"
+              height="550"
               frameBorder="0"
               allowTransparency={true}
             />
@@ -151,27 +151,33 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
         </div>
 
         <div>
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings</p>
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings — Next 7 Days</p>
           <Card>
-            {earnings7.slice(0, 7).length > 0 ? earnings7.slice(0, 7).map((e: any, i: number) => (
-              <div key={i} className="py-2.5 border-b border-border last:border-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm text-white">
-                      <span className="font-mono text-accent">{e.symbol}</span>
-                    </p>
-                    {e.summary
-                      ? <p className="text-xs text-dim mt-1 leading-relaxed">{e.summary}</p>
-                      : <p className="text-xs text-muted mt-1">EPS est: {e.epsEstimate ?? '—'}</p>
-                    }
-                  </div>
-                  <div className="text-right text-xs text-muted flex-shrink-0 mt-0.5">
-                    <p>{daysUntil(e.date)}</p>
-                    <p>{e.hour?.toUpperCase()}</p>
+            {earnings7.slice(0, 7).length > 0 ? earnings7.slice(0, 7).map((e: any, i: number) => {
+              const dateLabel = (() => {
+                const [y, m, d] = e.date.slice(0, 10).split('-').map(Number)
+                return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              })()
+              const hourLabel = e.hour === 'bmo' ? 'Before Open' : e.hour === 'amc' ? 'After Close' : (e.hour?.toUpperCase() ?? '—')
+              return (
+                <div key={i} className="py-3 border-b border-border last:border-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-base text-accent font-semibold">{e.symbol}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-border text-muted">{hourLabel}</span>
+                      </div>
+                      {e.summary && <p className="text-xs text-dim leading-relaxed mb-1">{e.summary}</p>}
+                      <p className="text-xs text-muted">EPS est: {e.epsEstimate ?? '—'}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-mono text-white">{daysUntil(e.date)}</p>
+                      <p className="text-xs text-dim mt-0.5">{dateLabel}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )) : (
+              )
+            }) : (
               <p className="text-sm text-dim py-2">No earnings this week.</p>
             )}
           </Card>
