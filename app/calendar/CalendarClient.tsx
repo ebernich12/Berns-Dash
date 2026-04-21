@@ -166,7 +166,10 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
               return (
                 <Card key={i}>
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <span className="font-mono text-xl text-accent font-bold">{e.symbol}</span>
+                    <div>
+                      <span className="font-mono text-xl text-accent font-bold">{e.symbol}</span>
+                      {e.name && <p className="text-xs text-muted mt-0.5">{e.name}</p>}
+                    </div>
                     <div className="text-right">
                       <p className="text-sm font-mono text-white">{daysUntil(e.date)}</p>
                       <p className="text-xs text-dim">{dateLabel}</p>

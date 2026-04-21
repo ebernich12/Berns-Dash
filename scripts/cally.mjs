@@ -232,7 +232,7 @@ async function curateEarnings(earnings, geminiKeys) {
   log(`Curating ${earnings.length} earnings reports with Gemini...`)
   if (earnings.length === 0) return []
 
-  const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the top 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "summary" field: one sentence on what to watch for in their report. Return ONLY a JSON array with fields: symbol, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
+  const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the top 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "name" field (full company name, e.g. "Apple Inc.") and a "summary" field (one sentence on what to watch for in their report). Return ONLY a JSON array with fields: symbol, name, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
 
   try {
     const raw   = await geminiCall(prompt, geminiKeys)
