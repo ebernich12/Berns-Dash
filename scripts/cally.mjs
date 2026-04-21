@@ -239,8 +239,8 @@ async function curateEarnings(earnings, geminiKeys) {
     const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     return JSON.parse(clean)
   } catch (e) {
-    log(`Gemini earnings failed (${e.message}), returning top 7 by default`)
-    return earnings.slice(0, 7)
+    log(`Gemini earnings failed (${e.message}), returning earliest 7 by date`)
+    return earnings.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 7)
   }
 }
 
