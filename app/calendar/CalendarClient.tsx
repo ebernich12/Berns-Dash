@@ -70,86 +70,67 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
   const visibleCanvas = allCanvas.filter(e => !hidden.has(`canvas-${e.title}-${e.date}`)).slice(0, 7)
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-6">
 
-      {/* Canvas — check off to dismiss, next loads in */}
-      <div>
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Canvas — Assignments</p>
-        <Card>
-          {visibleCanvas.length > 0 ? visibleCanvas.map((e: any, i: number) => {
-            const id = `canvas-${e.title}-${e.date}`
-            return (
-              <div key={i} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-                <button
-                  onClick={() => toggle(id)}
-                  className="flex-shrink-0 w-4 h-4 rounded border border-border flex items-center justify-center hover:border-accent transition-colors"
-                >
-                  <span className="text-accent text-xs opacity-0 group-hover:opacity-100" />
-                </button>
-                <div className="flex items-center justify-between flex-1 min-w-0">
-                  <div>
-                    <p className="text-sm text-white">{e.title}</p>
-                    {e.course && <p className="text-xs text-dim">{e.course}</p>}
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                    <span className={`text-xs px-2 py-0.5 rounded ${e.type === 'assignment' ? 'bg-accent/10 text-accent' : 'bg-border text-muted'}`}>{e.type}</span>
-                    <span className="text-xs font-mono text-dim">{daysUntil(e.date)}</span>
+      {/* Top row: Canvas + Google Cal + Earnings */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* Canvas */}
+        <div>
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Canvas — Assignments</p>
+          <Card>
+            {visibleCanvas.length > 0 ? visibleCanvas.map((e: any, i: number) => {
+              const id = `canvas-${e.title}-${e.date}`
+              return (
+                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                  <button
+                    onClick={() => toggle(id)}
+                    className="flex-shrink-0 w-4 h-4 rounded border border-border flex items-center justify-center hover:border-accent transition-colors"
+                  >
+                    <span className="text-accent text-xs opacity-0 group-hover:opacity-100" />
+                  </button>
+                  <div className="flex items-center justify-between flex-1 min-w-0">
+                    <div>
+                      <p className="text-sm text-white">{e.title}</p>
+                      {e.course && <p className="text-xs text-dim">{e.course}</p>}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                      <span className={`text-xs px-2 py-0.5 rounded ${e.type === 'assignment' ? 'bg-accent/10 text-accent' : 'bg-border text-muted'}`}>{e.type}</span>
+                      <span className="text-xs font-mono text-dim">{daysUntil(e.date)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          }) : (
-            <p className="text-sm text-dim py-2">All caught up.</p>
-          )}
-        </Card>
-      </div>
-
-      {/* Google Calendar */}
-      <div>
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Google Calendar</p>
-        <Card>
-          {gcal7.length > 0 ? gcal7.map((e: any) => (
-            <Row key={e.id}>
-              <div>
-                {e.link ? (
-                  <a href={e.link} target="_blank" rel="noopener noreferrer"
-                    className="text-sm text-white hover:text-accent transition-colors">{e.title}</a>
-                ) : (
-                  <p className="text-sm text-white">{e.title}</p>
-                )}
-                {e.time && <p className="text-xs text-dim">{e.time}</p>}
-              </div>
-              <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date)}</span>
-            </Row>
-          )) : (
-            <p className="text-sm text-dim py-2">No events in next 7 days.</p>
-          )}
-        </Card>
-      </div>
-
-      {/* Economic Releases + Earnings stacked */}
-      <div className="flex flex-col gap-6">
-
-        <div>
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Economic Releases</p>
-          <div className="rounded-2xl overflow-hidden border border-border">
-            <iframe
-              src={`https://www.tradingview.com/embed-widget/events/?locale=en#${encodeURIComponent(JSON.stringify({
-                colorTheme: 'dark',
-                isTransparent: true,
-                width: '100%',
-                height: 550,
-                importanceFilter: '1',
-                countryFilter: 'us',
-              }))}`}
-              width="100%"
-              height="550"
-              frameBorder="0"
-              allowTransparency={true}
-            />
-          </div>
+              )
+            }) : (
+              <p className="text-sm text-dim py-2">All caught up.</p>
+            )}
+          </Card>
         </div>
 
+        {/* Google Calendar */}
+        <div>
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Google Calendar</p>
+          <Card>
+            {gcal7.length > 0 ? gcal7.map((e: any) => (
+              <Row key={e.id}>
+                <div>
+                  {e.link ? (
+                    <a href={e.link} target="_blank" rel="noopener noreferrer"
+                      className="text-sm text-white hover:text-accent transition-colors">{e.title}</a>
+                  ) : (
+                    <p className="text-sm text-white">{e.title}</p>
+                  )}
+                  {e.time && <p className="text-xs text-dim">{e.time}</p>}
+                </div>
+                <span className="text-xs font-mono text-dim ml-2 flex-shrink-0">{daysUntil(e.date)}</span>
+              </Row>
+            )) : (
+              <p className="text-sm text-dim py-2">No events in next 7 days.</p>
+            )}
+          </Card>
+        </div>
+
+        {/* Earnings */}
         <div>
           <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings — Next 7 Days</p>
           <Card>
@@ -183,6 +164,27 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
           </Card>
         </div>
 
+      </div>
+
+      {/* Economic Releases — full width */}
+      <div>
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Economic Releases</p>
+        <div className="rounded-2xl overflow-hidden border border-border">
+          <iframe
+            src={`https://www.tradingview.com/embed-widget/events/?locale=en#${encodeURIComponent(JSON.stringify({
+              colorTheme: 'dark',
+              isTransparent: true,
+              width: '100%',
+              height: 500,
+              importanceFilter: '-1',
+              countryFilter: 'us',
+            }))}`}
+            width="100%"
+            height="500"
+            frameBorder="0"
+            allowTransparency={true}
+          />
+        </div>
       </div>
 
     </div>
