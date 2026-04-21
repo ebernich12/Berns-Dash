@@ -188,7 +188,7 @@ async function fetchEcon(apiKey) {
     `https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${in7}&token=${apiKey}`
   )
   return (data.economicCalendar || [])
-    .filter(e => e.country === 'US' && e.impact === 'high')
+    .filter(e => e.country === 'US' && (e.impact === 'high' || e.impact === 'medium'))
     .map(e => ({ event: e.event, date: e.date, time: e.time || null, impact: e.impact }))
 }
 
