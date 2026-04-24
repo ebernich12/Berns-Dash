@@ -12,11 +12,11 @@ import {
 const nav = [
   { href: '/',         label: 'Home',     icon: LayoutDashboard, color: '#f5f5f7' },
   { href: '/calendar', label: 'Calendar', icon: Calendar,        color: '#0a84ff' },
-  { href: '/music',    label: 'Music',    icon: Music,           color: '#bf5af2' },
   { href: '/news',     label: 'News',     icon: Newspaper,       color: '#ff9f0a' },
-  { href: '/classes',  label: 'Classes',  icon: BookOpen,        color: '#30d158' },
   { href: '/finance',  label: 'Finance',  icon: LineChart,       color: '#64d2ff' },
   { href: '/trading',  label: 'Trading',  icon: TrendingUp,      color: '#ff453a' },
+  { href: '/music',    label: 'Music',    icon: Music,           color: '#bf5af2' },
+  { href: '/classes',  label: 'Classes',  icon: BookOpen,        color: '#30d158' },
 ]
 
 export default function Sidebar() {
