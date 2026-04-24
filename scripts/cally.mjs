@@ -268,10 +268,11 @@ async function main() {
   const required = ['CANVAS_ICS_URL','GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET',
                     'GOOGLE_REFRESH_TOKEN','FINNHUB_API_KEY',
                     'GEMINI_API_KEY','CRON_SECRET']
+  // Note: economic calendar removed — TradingView live widget used on page instead
   const missing = required.filter(k => !env[k])
   if (missing.length) { log(`Missing env vars: ${missing.join(', ')}`); process.exit(1) }
 
-  const geminiKeys = [env.GEMINI_API_KEY, env.GEMINI_API_KEY_2].filter(Boolean)
+  const geminiKeys = [env.GEMINI_API_KEY, env.GEMINI_API_KEY_2, env.GEMINI_API_KEY_3].filter(Boolean)
   const results = { canvas: [], google: [], economic: [], earnings: [] }
 
   await Promise.allSettled([
@@ -285,12 +286,6 @@ async function main() {
 
     (async () => {
       try {
-        const econ = await fetchEcon(env.FINNHUB_API_KEY)
-        results.economic = await curateEcon(econ, geminiKeys)
-        log(`Econ: ${results.economic.length} curated events`)
-      } catch (e) { log(`ERROR Econ: ${e.message}`) }
-      try {
-        await new Promise(r => setTimeout(r, 4000))
         const earn = await fetchEarnings(env.FINNHUB_API_KEY)
         results.earnings = await curateEarnings(earn, geminiKeys)
         log(`Earnings: ${results.earnings.length} curated reports`)
