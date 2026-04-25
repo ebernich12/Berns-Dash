@@ -83,12 +83,14 @@ function label(score) {
 }
 
 async function groq(messages, max_tokens = 512) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res  = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens, temperature: 0.3, messages }),
   })
-  return (await res.json()).choices?.[0]?.message?.content ?? ''
+  const json = await res.json()
+  if (!res.ok || json.error) console.error('[AnalysisAgent] Groq error:', JSON.stringify(json).slice(0, 200))
+  return json.choices?.[0]?.message?.content ?? ''
 }
 
 async function rankTop10(headlines) {
