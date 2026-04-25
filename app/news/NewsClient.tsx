@@ -381,6 +381,33 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
             {tech?.tech_sentiment      && <ConvictionBanner label="Tech"    score={tech.tech_sentiment.score}     sublabel="Technology sector" />}
           </div>
 
+          {/* Per-agent summaries */}
+          {(markets?.summary || world?.summary || tech?.summary) && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {markets?.summary && (
+                <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+                  <p className="text-xs text-muted font-mono uppercase tracking-widest">Markets</p>
+                  <p className="text-xs text-white leading-relaxed">{markets.summary.summary}</p>
+                  {markets.summary.outlook && <p className="text-xs font-medium" style={{ color: markets.summary.outlook.toLowerCase().includes('bull') ? '#30d158' : markets.summary.outlook.toLowerCase().includes('bear') ? '#ff453a' : '#8e8e93' }}>{markets.summary.outlook}</p>}
+                </div>
+              )}
+              {world?.summary && (
+                <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+                  <p className="text-xs text-muted font-mono uppercase tracking-widest">World</p>
+                  <p className="text-xs text-white leading-relaxed">{world.summary.summary}</p>
+                  {world.summary.outlook && <p className="text-xs font-medium" style={{ color: world.summary.outlook.toLowerCase().includes('risk-on') ? '#30d158' : world.summary.outlook.toLowerCase().includes('risk-off') ? '#ff453a' : '#8e8e93' }}>{world.summary.outlook}</p>}
+                </div>
+              )}
+              {tech?.summary && (
+                <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+                  <p className="text-xs text-muted font-mono uppercase tracking-widest">Tech</p>
+                  <p className="text-xs text-white leading-relaxed">{tech.summary.summary}</p>
+                  {tech.summary.outlook && <p className="text-xs font-medium" style={{ color: tech.summary.outlook.toLowerCase().includes('bull') ? '#30d158' : tech.summary.outlook.toLowerCase().includes('bear') ? '#ff453a' : '#8e8e93' }}>{tech.summary.outlook}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Top stories */}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top Stories</p>

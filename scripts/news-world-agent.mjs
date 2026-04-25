@@ -90,9 +90,9 @@ function label(score) {
 async function writeSummary(conviction, headlines) {
   const topLines = headlines.slice(0, 8).map(h => `- ${h.headline} (${h.source})`).join('\n')
   const text = await groq([
-    { role: 'system', content: 'You are a geopolitical analyst. Return ONLY valid JSON: {"summary":"2-sentence world situation overview","outlook":"Risk-On/Risk-Off/Mixed — one sentence directional call","tailwinds":["positive trend 1","positive trend 2","positive trend 3"],"headwinds":["geopolitical risk 1","risk 2","risk 3"]}. No markdown, no extra text.' },
+    { role: 'system', content: 'You are a geopolitical risk analyst writing for a macro hedge fund PM. Return ONLY valid JSON: {"summary":"3-4 sentences on the current geopolitical and macro situation. Name specific countries, conflicts, or policy actions. Explain the second-order market implications — what does this mean for commodities, safe havens, or EM flows? Be precise, not descriptive.","outlook":"Risk-On/Risk-Off/Mixed — one sentence naming the specific trigger or flashpoint driving the call","tailwinds":["specific de-escalation, deal, or positive development — name the parties and stakes","tailwind 2","tailwind 3"],"headwinds":["specific conflict, policy risk, or geopolitical flashpoint — name countries and mechanism","risk 2","risk 3"]}. No markdown, no extra text.' },
     { role: 'user', content: `World sentiment: ${conviction.toFixed(2)}\n\nTop headlines:\n${topLines}` },
-  ], 400)
+  ], 600)
   try {
     const match = text.match(/\{[\s\S]*\}/)
     return match ? JSON.parse(match[0]) : null

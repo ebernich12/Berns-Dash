@@ -87,9 +87,9 @@ function label(score) {
 async function writeSummary(conviction, headlines) {
   const topLines = headlines.slice(0, 8).map(h => `- ${h.headline} (${h.source})`).join('\n')
   const text = await groq([
-    { role: 'system', content: 'You are a tech sector analyst. Return ONLY valid JSON: {"summary":"2-sentence tech sector overview","outlook":"Bullish/Bearish/Neutral — one sentence directional call with key driver","tailwinds":["tech tailwind 1","tailwind 2","tailwind 3"],"headwinds":["tech risk 1","risk 2","risk 3"]}. No markdown, no extra text.' },
+    { role: 'system', content: 'You are a tech sector analyst at a top-tier fund writing for a PM who reads every earnings transcript. Return ONLY valid JSON: {"summary":"3-4 sentences. Name specific companies, products, or earnings data points. Explain what the news implies for AI capex, semiconductor cycles, or ad revenue — pick whichever is most relevant right now. No vague sector-level commentary.","outlook":"Bullish/Bearish/Neutral — one sentence naming the specific company, product cycle, or regulatory development driving the view","tailwinds":["specific company or product catalyst with data — e.g. NVDA H100 lead times compressing → margin expansion","tailwind 2","tailwind 3"],"headwinds":["specific risk with company name or regulatory detail","risk 2","risk 3"]}. No markdown, no extra text.' },
     { role: 'user', content: `Tech sentiment: ${conviction.toFixed(2)}\n\nTop headlines:\n${topLines}` },
-  ], 400)
+  ], 600)
   try {
     const match = text.match(/\{[\s\S]*\}/)
     return match ? JSON.parse(match[0]) : null

@@ -106,9 +106,9 @@ async function writeSummary(conviction, sectors, headlines) {
     .join('\n')
   const topLines = headlines.slice(0, 8).map(h => `- ${h.headline} (${h.source}, score=${h.sentiment})`).join('\n')
   const text = await groq([
-    { role: 'system', content: 'You are a senior market strategist. Return ONLY valid JSON with this exact structure:\n{"summary":"2-sentence market overview","outlook":"Bullish/Bearish/Neutral — one sentence direction call","tailwinds":["tailwind 1","tailwind 2","tailwind 3"],"headwinds":["risk 1","risk 2","risk 3"],"sectors":{"SectorName":{"catalyst":"brief tailwind","risk":"brief headwind"}}}\nInclude all sectors given. No markdown, no extra text, no explanation.' },
+    { role: 'system', content: 'You are a sell-side equity strategist writing for a sophisticated PM. Return ONLY valid JSON with this exact structure:\n{"summary":"3-4 sentences. Name specific indices, spread levels, or rate moves. Explain the mechanism — not just what happened, but why it matters and what it implies for the next 48h. No generic statements.","outlook":"Bullish/Bearish/Neutral/Stagflation — one sentence naming the specific catalyst or data point driving the view, not just the label","tailwinds":["specific tailwind with data, company, or causal mechanism — never a generic phrase","tailwind 2","tailwind 3"],"headwinds":["specific risk with data or mechanism","risk 2","risk 3"],"sectors":{"SectorName":{"catalyst":"specific catalyst with data","risk":"specific risk with data"}}}\nInclude all sectors given. Every bullet must contain a specific number, company, or causal link. No markdown, no extra text, no explanation.' },
     { role: 'user', content: `Market conviction: ${conviction.toFixed(2)}\n\nSector scores:\n${sectorLines}\n\nTop headlines:\n${topLines}` },
-  ], 700)
+  ], 900)
   try {
     const match = text.match(/\{[\s\S]*\}/)
     return match ? JSON.parse(match[0]) : null
