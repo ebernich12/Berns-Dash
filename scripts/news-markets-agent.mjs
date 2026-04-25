@@ -161,10 +161,10 @@ async function fetchEIAPrices() {
   await Promise.allSettled(
     Object.entries(series).map(async ([key, id]) => {
       try {
-        const url  = `https://api.eia.gov/v2/seriesid/${id}?api_key=${EIA_KEY}&data[]=value&sort[0][column]=period&sort[0][direction]=desc&length=2`
+        const url  = `https://api.eia.gov/v2/seriesid/${id}?api_key=${EIA_KEY}&data[]=value&sort[0][column]=period&sort[0][direction]=desc&length=5`
         const res  = await fetch(url)
         const data = await res.json()
-        const pts  = data.response?.data ?? []
+        const pts  = (data.response?.data ?? []).filter(p => p.value != null && p.value !== '')
         if (pts.length >= 2) {
           const v = parseFloat(pts[0].value), p = parseFloat(pts[1].value)
           results[key] = { value: v, prev: p, change: +(v - p).toFixed(2) }
