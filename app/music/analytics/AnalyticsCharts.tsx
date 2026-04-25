@@ -70,9 +70,9 @@ export default function AnalyticsCharts({ history, yt, ig }: Props) {
     : 0
 
   const avgViewsBar = [
-    { platform: 'YouTube', value: yt?.avg_views_per_video ?? 0, color: YT_COLOR },
-    { platform: 'Instagram', value: igAvgReach, color: IG_COLOR },
-    { platform: 'TikTok', value: 0, color: TT_COLOR },
+    { platform: 'YouTube', value: yt?.avg_views_per_video ?? 0, color: YT_COLOR, label: 'Avg Views / Video' },
+    { platform: 'Instagram', value: ig?.account_insights?.reach ?? ig?.total_reach_recent ?? 0, color: IG_COLOR, label: 'Reach (30d)' },
+    { platform: 'TikTok', value: 0, color: TT_COLOR, label: 'Avg Views / Video' },
   ]
 
   return (
@@ -99,13 +99,13 @@ export default function AnalyticsCharts({ history, yt, ig }: Props) {
 
       {/* Avg views per video comparison */}
       <div className="bg-card border border-border rounded-xl p-4">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Avg Views / Video by Platform</p>
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Views & Reach by Platform</p>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={avgViewsBar} barCategoryGap="30%">
             <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
             <XAxis dataKey="platform" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any) => [fmt(v), 'Avg Views']} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any, _: any, props: any) => [fmt(v), props.payload.label]} />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {avgViewsBar.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
