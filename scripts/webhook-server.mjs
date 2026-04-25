@@ -39,7 +39,7 @@ function verify(payload, sig) {
 function deploy() {
   console.log(`[${new Date().toISOString()}] deploying...`)
   exec(
-    `cd ${DIR} && git pull origin master && npm ci --omit=dev && npm run build && pm2 restart berns-dashboard`,
+    `cd ${DIR} && git pull origin master && npm ci && npm run build && pm2 restart berns-dashboard`,
     { timeout: 300_000 },
     (err, stdout, stderr) => {
       if (err) {
