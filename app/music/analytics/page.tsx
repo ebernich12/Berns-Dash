@@ -79,7 +79,7 @@ export default async function AnalyticsPage() {
         <div className="mb-6">
           <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Instagram Account Insights (30 days)</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(igInsights).map(([key, val]: any) => (
+            {Object.entries(igInsights).filter(([, val]: any) => val > 0).map(([key, val]: any) => (
               <div key={key} className="bg-card border border-border rounded-xl p-4">
                 <p className="text-xs text-muted mb-1 capitalize">{key.replace(/_/g, ' ')}</p>
                 <p className="text-xl font-semibold" style={{ color: IG }}>{fmt(val)}</p>
