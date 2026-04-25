@@ -121,26 +121,33 @@ async function fetchInstagram() {
   const avgComments = posts.length > 0 ? Math.round(posts.reduce((s, p) => s + (p.comments ?? 0), 0) / posts.length) : 0
   const avgLikes = posts.length > 0 ? Math.round(posts.reduce((s, p) => s + (p.likes ?? 0), 0) / posts.length) : 0
 
-  // Account-level insights (last 30 days)
+  // Account-level insights (last 30 days) — split calls due to API period restrictions
   let accountInsights = {}
+  const since = Math.floor(Date.now() / 1000) - 30 * 86400
+  const until = Math.floor(Date.now() / 1000)
+
+  // reach requires period=day (sum daily values)
   try {
-    const since = Math.floor(Date.now() / 1000) - 30 * 86400
-    const until = Math.floor(Date.now() / 1000)
-    const insightRes = await fetch(
-      `${base}/${IG_ACCOUNT_ID}/insights?metric=reach,views,total_interactions,profile_views&period=total_over_range&metric_type=total_value&since=${since}&until=${until}&access_token=${IG_TOKEN}`
+    const res = await fetch(
+      `${base}/${IG_ACCOUNT_ID}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${IG_TOKEN}`
     )
-    const insightData = await insightRes.json()
-    if (insightData.error) {
-      console.warn('IG insights error:', insightData.error.message)
+    const d = await res.json()
+    if (d.error) console.warn('IG reach error:', d.error.message)
+    else accountInsights.reach = d.data?.[0]?.values?.reduce((s, v) => s + (v.value ?? 0), 0) ?? 0
+  } catch (e) { console.warn('IG reach failed:', e.message) }
+
+  // views/interactions/profile_views require total_over_range + metric_type=total_value
+  try {
+    const res = await fetch(
+      `${base}/${IG_ACCOUNT_ID}/insights?metric=views,total_interactions,profile_views&period=total_over_range&metric_type=total_value&since=${since}&until=${until}&access_token=${IG_TOKEN}`
+    )
+    const d = await res.json()
+    if (d.error) console.warn('IG views error:', d.error.message)
+    console.log('IG insights raw:', JSON.stringify(d?.data?.map(m => ({ name: m.name, values: m.values }))))
+    for (const metric of d.data ?? []) {
+      accountInsights[metric.name] = metric.values?.[0]?.value ?? metric.values?.reduce((s, v) => s + (v.value ?? 0), 0) ?? 0
     }
-    console.log('IG insights raw:', JSON.stringify(insightData?.data?.map(m => ({ name: m.name, values: m.values }))))
-    for (const metric of insightData.data ?? []) {
-      const total = metric.values?.reduce((s, v) => s + (v.value ?? 0), 0) ?? 0
-      accountInsights[metric.name] = total
-    }
-  } catch (e) {
-    console.warn('IG insights failed:', e.message)
-  }
+  } catch (e) { console.warn('IG views failed:', e.message) }
 
   return {
     username: profile.username,
