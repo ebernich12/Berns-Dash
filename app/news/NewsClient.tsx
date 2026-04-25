@@ -365,7 +365,7 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
 
           {/* Macro strip */}
           {macro?.indicators && (
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
               {macro.indicators.fed_funds   && <MacroStripCard label="Fed Funds"   value={macro.indicators.fed_funds.value}   change={macro.indicators.fed_funds.change}   unit="%" />}
               {macro.indicators.dgs10       && <MacroStripCard label="10Y"         value={macro.indicators.dgs10.value}       change={macro.indicators.dgs10.change}       unit="%" />}
               {macro.indicators.cpi         && <MacroStripCard label="Inflation"   value={macro.indicators.cpi.value}         change={macro.indicators.cpi.change}            />}
