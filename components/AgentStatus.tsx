@@ -1,11 +1,9 @@
 import { getAgentStatuses } from '@/lib/db'
 
 const AGENTS = [
-  { key: 'calendar', label: 'Cally'   },
-  { key: 'news',     label: 'News'    },
-  { key: 'finance',  label: 'Finance' },
-  { key: 'trading',  label: 'Trader'  },
-  { key: 'music',    label: 'Music'   },
+  { key: 'calendar',      label: 'Cally'    },
+  { key: 'news-analysis', label: 'News'     },
+  { key: 'music',         label: 'Music'    },
 ]
 
 function timeAgo(dateStr: string) {
