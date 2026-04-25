@@ -184,7 +184,11 @@ async function fetchEarnings(apiKey) {
     `https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${in14}&token=${apiKey}`
   )
   return (data.earningsCalendar || [])
-    .filter(e => e.symbol)
+    .filter(e => {
+      if (!e.symbol) return false
+      const day = new Date(e.date + 'T12:00:00').getDay()
+      return day !== 0 && day !== 6 // drop Saturday and Sunday
+    })
     .map(e => ({
       symbol:      e.symbol,
       date:        e.date,
