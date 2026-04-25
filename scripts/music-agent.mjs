@@ -127,7 +127,7 @@ async function fetchInstagram() {
     const since = Math.floor(Date.now() / 1000) - 30 * 86400
     const until = Math.floor(Date.now() / 1000)
     const insightRes = await fetch(
-      `${base}/${IG_ACCOUNT_ID}/insights?metric=reach,views,total_interactions,profile_views&period=total_over_range&since=${since}&until=${until}&access_token=${IG_TOKEN}`
+      `${base}/${IG_ACCOUNT_ID}/insights?metric=reach,views,total_interactions,profile_views&period=total_over_range&metric_type=total_value&since=${since}&until=${until}&access_token=${IG_TOKEN}`
     )
     const insightData = await insightRes.json()
     if (insightData.error) {
