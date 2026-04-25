@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import pg from 'pg'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ENV_PATH  = path.join(__dirname, '..', '.env.local')
@@ -25,6 +26,19 @@ const GROQ_KEY    = env.GROQ_KEY || env.GROQ_API_KEY
 const GROQ_KEY_2  = env.GROQ_KEY_2
 const INGEST_URL  = env.INGEST_URL || 'https://bernsapp.com/api/ingest'
 const CRON_SECRET = env.CRON_SECRET
+const DB_URL      = env.DATABASE_URL
+
+const SUMMARY_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+async function getExistingSnapshot() {
+  const pool = new pg.Pool({ connectionString: DB_URL })
+  try {
+    const res = await pool.query('SELECT data FROM agent_snapshots WHERE agent = $1', ['news-world'])
+    return res.rows[0]?.data ?? null
+  } finally {
+    await pool.end()
+  }
+}
 
 const RSS_WORLD = [
   { name: 'Reuters', url: 'https://feeds.reuters.com/reuters/worldNews' },
@@ -160,6 +174,11 @@ async function fetchRSS(feed) {
 async function run() {
   console.log('[WorldAgent] starting...')
 
+  const existing      = await getExistingSnapshot().catch(() => null)
+  const summaryAge    = existing?.summary_updated_at ? Date.now() - new Date(existing.summary_updated_at).getTime() : Infinity
+  const reusesSummary = summaryAge < SUMMARY_TTL_MS
+  if (reusesSummary) console.log('[WorldAgent] summary fresh, skipping regeneration')
+
   const [generalRes, rssResults] = await Promise.allSettled([
     fetchNewsAPI('general'),
     Promise.allSettled(RSS_WORLD.map(f => fetchRSS(f))),
@@ -191,15 +210,17 @@ async function run() {
 
   const [top10Res, summaryRes] = await Promise.allSettled([
     rankTop10(scored).catch(() => scored.slice(0, 10)),
-    writeSummary(conviction, scored),
+    reusesSummary ? Promise.resolve(null) : writeSummary(conviction, scored),
   ])
 
+  const newSummary = summaryRes.status === 'fulfilled' ? summaryRes.value : null
   const payload = {
-    updated_at:      new Date().toISOString(),
-    world_sentiment: { score: +conviction.toFixed(3), label: label(conviction) },
-    headlines:       scored,
-    top10:           top10Res.status === 'fulfilled' ? top10Res.value : scored.slice(0, 10),
-    summary:         summaryRes.status === 'fulfilled' ? summaryRes.value : null,
+    updated_at:         new Date().toISOString(),
+    summary_updated_at: newSummary ? new Date().toISOString() : (existing?.summary_updated_at ?? null),
+    world_sentiment:    { score: +conviction.toFixed(3), label: label(conviction) },
+    headlines:          scored,
+    top10:              top10Res.status === 'fulfilled' ? top10Res.value : scored.slice(0, 10),
+    summary:            newSummary ?? (reusesSummary ? existing.summary : null),
   }
 
   console.log(`[WorldAgent] conviction=${conviction.toFixed(3)} (${label(conviction)}), top10=${payload.top10.length}`)

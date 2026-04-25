@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import pg from 'pg'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ENV_PATH  = path.join(__dirname, '..', '.env.local')
@@ -27,6 +28,19 @@ const GROQ_KEY_2   = env.GROQ_KEY_2
 const EIA_KEY      = env.EIA_KEY
 const INGEST_URL   = env.INGEST_URL || 'https://bernsapp.com/api/ingest'
 const CRON_SECRET  = env.CRON_SECRET
+const DB_URL       = env.DATABASE_URL
+
+const SUMMARY_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+async function getExistingSnapshot() {
+  const pool = new pg.Pool({ connectionString: DB_URL })
+  try {
+    const res = await pool.query('SELECT data FROM agent_snapshots WHERE agent = $1', ['news-markets'])
+    return res.rows[0]?.data ?? null
+  } finally {
+    await pool.end()
+  }
+}
 
 const SECTORS = {
   Technology:               'XLK',
@@ -192,6 +206,11 @@ async function fetchEIAPrices() {
 async function run() {
   console.log('[MarketsAgent] starting...')
 
+  const existing       = await getExistingSnapshot().catch(() => null)
+  const summaryAge     = existing?.summary_updated_at ? Date.now() - new Date(existing.summary_updated_at).getTime() : Infinity
+  const reusesSummary  = summaryAge < SUMMARY_TTL_MS
+  if (reusesSummary) console.log('[MarketsAgent] summary fresh, skipping regeneration')
+
   const sectorEntries = Object.entries(SECTORS)
 
   const [newsAPIRes, finnhubRes, energyRes, ...rest] = await Promise.allSettled([
@@ -256,25 +275,35 @@ async function run() {
 
   const [top10Res, summaryRes] = await Promise.allSettled([
     rankTop10(scored).catch(() => scored.slice(0, 10)),
-    writeSummary(conviction, sectors, scored),
+    reusesSummary ? Promise.resolve(null) : writeSummary(conviction, sectors, scored),
   ])
 
-  const top10   = top10Res.status   === 'fulfilled' ? top10Res.value   : scored.slice(0, 10)
-  const summary = summaryRes.status === 'fulfilled' ? summaryRes.value : null
+  const top10      = top10Res.status   === 'fulfilled' ? top10Res.value   : scored.slice(0, 10)
+  const newSummary = summaryRes.status === 'fulfilled' ? summaryRes.value : null
+  const summary    = newSummary ?? (reusesSummary ? existing.summary : null)
+  const summaryUpdatedAt = newSummary ? new Date().toISOString() : (existing?.summary_updated_at ?? null)
 
-  if (summary?.sectors) {
+  if (newSummary?.sectors) {
     for (const [sector] of sectorEntries) {
-      if (summary.sectors[sector]) {
-        sectors[sector].catalyst = summary.sectors[sector].catalyst ?? null
-        sectors[sector].risk     = summary.sectors[sector].risk     ?? null
+      if (newSummary.sectors[sector]) {
+        sectors[sector].catalyst = newSummary.sectors[sector].catalyst ?? null
+        sectors[sector].risk     = newSummary.sectors[sector].risk     ?? null
+      }
+    }
+  } else if (reusesSummary && existing?.sectors) {
+    for (const [sector] of sectorEntries) {
+      if (existing.sectors[sector]) {
+        sectors[sector].catalyst = existing.sectors[sector].catalyst ?? null
+        sectors[sector].risk     = existing.sectors[sector].risk     ?? null
       }
     }
   }
 
   const payload = {
-    updated_at:       new Date().toISOString(),
-    market_sentiment: { score: +conviction.toFixed(3), label: label(conviction) },
-    headlines:        scored,
+    updated_at:        new Date().toISOString(),
+    summary_updated_at: summaryUpdatedAt,
+    market_sentiment:  { score: +conviction.toFixed(3), label: label(conviction) },
+    headlines:         scored,
     top10,
     sectors,
     energy,

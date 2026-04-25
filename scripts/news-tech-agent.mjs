@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import pg from 'pg'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ENV_PATH  = path.join(__dirname, '..', '.env.local')
@@ -26,8 +27,40 @@ const GROQ_KEY     = env.GROQ_KEY || env.GROQ_API_KEY
 const GROQ_KEY_2   = env.GROQ_KEY_2
 const INGEST_URL   = env.INGEST_URL || 'https://bernsapp.com/api/ingest'
 const CRON_SECRET  = env.CRON_SECRET
+const DB_URL       = env.DATABASE_URL
+
+const SUMMARY_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
+
+async function getExistingSnapshot() {
+  const pool = new pg.Pool({ connectionString: DB_URL })
+  try {
+    const res = await pool.query('SELECT data FROM agent_snapshots WHERE agent = $1', ['news-tech'])
+    return res.rows[0]?.data ?? null
+  } finally {
+    await pool.end()
+  }
+}
 
 const TECH_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'META', 'AMZN', 'TSM']
+
+const BLOCKED_SOURCES = new Set([
+  'Kotaku', 'Eurogamer', 'Eurogamer.net', 'Warhammer Community', 'Warhammer-community.com',
+  'GamesIndustry.biz', 'IGN', 'Polygon', 'PC Gamer', 'Rock Paper Shotgun', 'VG247',
+  'GameSpot', 'Giant Bomb', 'Destructoid', 'The Gamer', 'Game Rant',
+])
+
+const BLOCKED_KEYWORDS = [
+  'warhammer', 'dildos', 'haircuts', 'dave ramsey', 'furniture salesman',
+  'clair obscur', 'expedition 33', 'atari', 'emulation', 'city of ash',
+  'painters enter', 'one-year anniversary', 'new haircuts',
+]
+
+function isRelevant(headline, source) {
+  if (BLOCKED_SOURCES.has(source)) return false
+  const lower = headline.toLowerCase()
+  if (BLOCKED_KEYWORDS.some(kw => lower.includes(kw))) return false
+  return true
+}
 
 // ── Sentiment ─────────────────────────────────────────────────────────────────
 
@@ -132,6 +165,11 @@ async function fetchTickerNews(ticker) {
 async function run() {
   console.log('[TechAgent] starting...')
 
+  const existing      = await getExistingSnapshot().catch(() => null)
+  const summaryAge    = existing?.summary_updated_at ? Date.now() - new Date(existing.summary_updated_at).getTime() : Infinity
+  const reusesSummary = summaryAge < SUMMARY_TTL_MS
+  if (reusesSummary) console.log('[TechAgent] summary fresh, skipping regeneration')
+
   const [newsAPIRes, ...tickerResults] = await Promise.allSettled([
     fetchNewsAPI(),
     ...TECH_TICKERS.map(t => fetchTickerNews(t)),
@@ -142,7 +180,7 @@ async function run() {
 
   const seen = new Set()
   const all  = [...newsAPI, ...tickerNews]
-    .filter(h => h.headline && !seen.has(h.headline) && seen.add(h.headline))
+    .filter(h => h.headline && isRelevant(h.headline, h.source) && !seen.has(h.headline) && seen.add(h.headline))
     .sort((a, b) => b.datetime - a.datetime)
     .slice(0, 30)
 
@@ -161,15 +199,17 @@ async function run() {
 
   const [top10Res, summaryRes] = await Promise.allSettled([
     rankTop10(scored).catch(() => scored.slice(0, 10)),
-    writeSummary(conviction, scored),
+    reusesSummary ? Promise.resolve(null) : writeSummary(conviction, scored),
   ])
 
+  const newSummary = summaryRes.status === 'fulfilled' ? summaryRes.value : null
   const payload = {
-    updated_at:     new Date().toISOString(),
-    tech_sentiment: { score: +conviction.toFixed(3), label: label(conviction) },
-    headlines:      scored,
+    updated_at:         new Date().toISOString(),
+    summary_updated_at: newSummary ? new Date().toISOString() : (existing?.summary_updated_at ?? null),
+    tech_sentiment:     { score: +conviction.toFixed(3), label: label(conviction) },
+    headlines:          scored,
     top10:          top10Res.status === 'fulfilled' ? top10Res.value : scored.slice(0, 10),
-    summary:        summaryRes.status === 'fulfilled' ? summaryRes.value : null,
+    summary:        newSummary ?? (reusesSummary ? existing.summary : null),
   }
 
   console.log(`[TechAgent] conviction=${conviction.toFixed(3)} (${label(conviction)}), top10=${payload.top10.length}`)
