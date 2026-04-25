@@ -65,14 +65,10 @@ export default function AnalyticsCharts({ history, yt, ig }: Props) {
     TikTok: r.tiktok_avg_views,
   }))
 
-  const igAvgReach = (ig?.total_reach_recent != null && ig?.post_count)
-    ? Math.round(ig.total_reach_recent / Math.min(ig.post_count, 20))
-    : 0
-
-  const avgViewsBar = [
-    { platform: 'YouTube', value: yt?.avg_views_per_video ?? 0, color: YT_COLOR, label: 'Avg Views / Video' },
-    { platform: 'Instagram', value: ig?.account_insights?.reach ?? ig?.total_reach_recent ?? 0, color: IG_COLOR, label: 'Reach (30d)' },
-    { platform: 'TikTok', value: 0, color: TT_COLOR, label: 'Avg Views / Video' },
+  const platformBar = [
+    { platform: 'YouTube',   value: yt?.total_views ?? 0,                                          color: YT_COLOR, label: 'Total Views' },
+    { platform: 'Instagram', value: ig?.account_insights?.reach ?? ig?.total_reach_recent ?? 0,    color: IG_COLOR, label: 'Reach (30d)' },
+    { platform: 'TikTok',   value: 0,                                                              color: TT_COLOR, label: 'Total Views' },
   ]
 
   return (
@@ -99,15 +95,15 @@ export default function AnalyticsCharts({ history, yt, ig }: Props) {
 
       {/* Avg views per video comparison */}
       <div className="bg-card border border-border rounded-xl p-4">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Views & Reach by Platform</p>
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Total Views & Reach by Platform</p>
         <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={avgViewsBar} barCategoryGap="30%">
+          <BarChart data={platformBar} barCategoryGap="30%">
             <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
             <XAxis dataKey="platform" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
             <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any, _: any, props: any) => [fmt(v), props.payload.label]} />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {avgViewsBar.map((entry, i) => (
+              {platformBar.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
               ))}
             </Bar>
