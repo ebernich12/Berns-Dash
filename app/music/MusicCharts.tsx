@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 
@@ -124,25 +124,27 @@ export default function MusicCharts({ history, yt, ig }: Props) {
         </div>
       </div>
 
-      {/* Reach & Views over time — all platforms */}
-      {reachData.length > 1 && (
-        <div className="bg-card border border-border rounded-xl p-4 mb-4">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Reach & Views Over Time</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={reachData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
-              <XAxis dataKey="date" tick={{ fill: '#8e8e93', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" domain={['auto', 'auto']} tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
-              <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any) => [fmt(v)]} />
-              <Legend wrapperStyle={{ fontSize: '11px' }} />
-              <Line yAxisId="right" type="monotone" dataKey="YT Total Views" stroke={YT_COLOR} strokeWidth={2} dot={false} />
-              <Line yAxisId="left" type="monotone" dataKey="IG Reach (30d)" stroke={IG_COLOR} strokeWidth={2} dot={false} />
-              <Line yAxisId="left" type="monotone" dataKey="TikTok" stroke={TT_COLOR} strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* Reach by platform bar */}
+      <div className="bg-card border border-border rounded-xl p-4 mb-4">
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Reach by Platform</p>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart barCategoryGap="35%" data={[
+            { platform: 'YouTube',   value: yt?.total_views  ?? 0, color: YT_COLOR, label: 'Total Views' },
+            { platform: 'Instagram', value: ig?.account_insights?.reach ?? ig?.total_reach_recent ?? 0, color: IG_COLOR, label: 'Reach (30d)' },
+            { platform: 'TikTok',   value: 0,                       color: TT_COLOR, label: 'Total Views' },
+          ]}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
+            <XAxis dataKey="platform" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any, _: any, props: any) => [fmt(v), props.payload.label]} />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              {[YT_COLOR, IG_COLOR, TT_COLOR].map((color, i) => (
+                <Cell key={i} fill={color} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
     </div>
   )
