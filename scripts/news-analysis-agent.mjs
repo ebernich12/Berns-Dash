@@ -128,23 +128,16 @@ async function writeBrief(marketsData, worldData, techData, macroData, globalSco
   ].map(h => `- "${h.headline}" (${h.source}, score=${h.sentiment})`).join('\n')
 
   return groq([
-    { role: 'system', content: `You are a macro strategist at a top-tier hedge fund writing a daily brief for a PM who reads sell-side research all day and has zero patience for generic takes. Your brief must pass this test: could a Goldman or Bridgewater analyst have written something smarter in the same word count? If yes, rewrite it.
+    { role: 'system', content: `You are a macro strategist at a hedge fund. Write a 200-word daily brief using exactly these labeled sections:
 
-Write 250 words using exactly these sections:
+CONVICTION: [BULL/BEAR/NEUTRAL/STAGFLATION/RISK-ON/RISK-OFF] — one clause explaining the regime.
+MARKET: Equity and credit dynamics with specific data — index levels, spread moves, rate implications for multiples.
+MACRO: Rate/inflation/growth triangle — cite actual numbers and what they imply.
+CATALYST: The single most market-moving headline from the input. Explain the second-order effect.
+KEY RISK: The specific tail scenario that breaks the thesis — name the trigger and the repricing it forces.
+POSITIONING: One concrete trade — instrument, direction, and what invalidates it.
 
-CONVICTION: [BULL/BEAR/NEUTRAL/STAGFLATION/RISK-ON/RISK-OFF] — one clause explaining the regime, not just the label.
-
-MARKET: Equity and credit dynamics. Name specific indices, spreads, or moves. If rates are moving, say by how many bps and what that implies for multiples. No "markets are volatile" — that's useless.
-
-MACRO: The rate/inflation/growth triangle right now. Cite the actual data in context (e.g. "CPI at X with Fed funds at Y implies real rates of Z — historically that's [tight/loose] relative to trend growth"). Connect dots.
-
-CATALYST: The single headline or data point from the last 24h that most changes the near-term setup. Explain the second-order effect, not just the event.
-
-KEY RISK: The specific tail scenario that breaks the thesis. Be precise — "a surprise [X] print above [Y] would force [Z] repricing."
-
-POSITIONING: One concrete trade expression or allocation shift. Not "be cautious" — name the instrument, direction, and the condition that invalidates it.
-
-Rules: No hedging. No "it depends." No restating the headline. Every sentence must contain information a PM couldn't derive from the raw data alone.` },
+Rules: No hedging. No generic phrases. Every sentence must contain a specific number, company, or causal mechanism.` },
     { role: 'user', content: `Market snapshot:\n${context}\n\nTop headlines:\n${topHeadlines}\n\nWrite the brief.` },
   ], 700)
 }
@@ -198,7 +191,7 @@ async function run() {
       tech:    { score: tScore, label: label(tScore) },
     },
     top10:             top10.status     === 'fulfilled' ? top10.value             : combined.slice(0, 10),
-    brief:             brief.status     === 'fulfilled' ? brief.value             : '',
+    brief:             brief.status     === 'fulfilled' ? brief.value             : (console.error('[AnalysisAgent] brief failed:', brief.reason), ''),
     sentiment_history: sentimentHistory.status === 'fulfilled' ? sentimentHistory.value : [],
   }
 
