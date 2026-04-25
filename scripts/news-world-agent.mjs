@@ -22,6 +22,7 @@ function loadEnv(fp) {
 const env         = loadEnv(ENV_PATH)
 const NEWSAPI_KEY = env.NEWSAPI_KEY
 const GROQ_KEY    = env.GROQ_KEY || env.GROQ_API_KEY
+const GROQ_KEY_2  = env.GROQ_KEY_2
 const INGEST_URL  = env.INGEST_URL || 'https://bernsapp.com/api/ingest'
 const CRON_SECRET = env.CRON_SECRET
 
@@ -32,14 +33,24 @@ const RSS_WORLD = [
 
 // ── Sentiment ─────────────────────────────────────────────────────────────────
 
-async function groq(messages, max_tokens = 512) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+async function groqCall(key, messages, max_tokens) {
+  const res  = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens, temperature: 0, messages }),
   })
-  const d = await res.json()
-  return d.choices?.[0]?.message?.content ?? ''
+  const json = await res.json()
+  if (!res.ok || json.error) console.error('[WorldAgent] Groq error:', JSON.stringify(json).slice(0, 200))
+  return json.choices?.[0]?.message?.content ?? ''
+}
+
+async function groq(messages, max_tokens = 512) {
+  const result = await groqCall(GROQ_KEY, messages, max_tokens)
+  if (!result && GROQ_KEY_2) {
+    console.log('[WorldAgent] primary key empty, retrying with key 2')
+    return groqCall(GROQ_KEY_2, messages, max_tokens)
+  }
+  return result
 }
 
 async function scoreHeadlines(headlines) {
