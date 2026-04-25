@@ -168,7 +168,7 @@ async function run() {
     summary:         summaryRes.status === 'fulfilled' ? summaryRes.value : null,
   }
 
-  console.log(`[WorldAgent] conviction=${conviction.toFixed(3)} (${label(conviction)}), top10=${top10.length}`)
+  console.log(`[WorldAgent] conviction=${conviction.toFixed(3)} (${label(conviction)}), top10=${payload.top10.length}`)
 
   const res    = await fetch(INGEST_URL, {
     method: 'POST',
