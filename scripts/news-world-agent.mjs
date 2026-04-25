@@ -87,6 +87,18 @@ function label(score) {
   return score > 0.3 ? 'Bullish' : score < -0.3 ? 'Bearish' : 'Neutral'
 }
 
+async function writeSummary(conviction, headlines) {
+  const topLines = headlines.slice(0, 8).map(h => `- ${h.headline} (${h.source})`).join('\n')
+  const text = await groq([
+    { role: 'system', content: 'You are a geopolitical analyst. Return ONLY valid JSON: {"summary":"2-sentence world situation overview","outlook":"Risk-On/Risk-Off/Mixed — one sentence directional call","tailwinds":["positive trend 1","positive trend 2","positive trend 3"],"headwinds":["geopolitical risk 1","risk 2","risk 3"]}. No markdown, no extra text.' },
+    { role: 'user', content: `World sentiment: ${conviction.toFixed(2)}\n\nTop headlines:\n${topLines}` },
+  ], 400)
+  try {
+    const match = text.match(/\{[\s\S]*\}/)
+    return match ? JSON.parse(match[0]) : null
+  } catch { return null }
+}
+
 // ── Fetchers ──────────────────────────────────────────────────────────────────
 
 async function fetchNewsAPI(category) {
@@ -142,13 +154,18 @@ async function run() {
   }))
 
   const conviction = convictionScore(scores)
-  const top10      = await rankTop10(scored).catch(() => scored.slice(0, 10))
+
+  const [top10Res, summaryRes] = await Promise.allSettled([
+    rankTop10(scored).catch(() => scored.slice(0, 10)),
+    writeSummary(conviction, scored),
+  ])
 
   const payload = {
     updated_at:      new Date().toISOString(),
     world_sentiment: { score: +conviction.toFixed(3), label: label(conviction) },
     headlines:       scored,
-    top10,
+    top10:           top10Res.status === 'fulfilled' ? top10Res.value : scored.slice(0, 10),
+    summary:         summaryRes.status === 'fulfilled' ? summaryRes.value : null,
   }
 
   console.log(`[WorldAgent] conviction=${conviction.toFixed(3)} (${label(conviction)}), top10=${top10.length}`)

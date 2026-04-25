@@ -52,7 +52,7 @@ async function saveSentimentHistory(markets, world, tech, global_score) {
       `INSERT INTO news_sentiment_history (markets_score, world_score, tech_score, global_score) VALUES ($1, $2, $3, $4)`,
       [markets, world, tech, global_score]
     )
-    const rows = await pool.query(`SELECT * FROM news_sentiment_history ORDER BY recorded_at DESC LIMIT 120`)
+    const rows = await pool.query(`SELECT * FROM news_sentiment_history ORDER BY recorded_at DESC LIMIT 840`)
     return rows.rows.map(r => ({
       date:         r.recorded_at.toISOString(),
       markets:      r.markets_score,
@@ -127,9 +127,9 @@ async function writeBrief(marketsData, worldData, techData, macroData, globalSco
   ].map(h => `- "${h.headline}" (${h.source}, score=${h.sentiment})`).join('\n')
 
   return groq([
-    { role: 'system', content: 'You are a senior market strategist. Write a 200-word global market brief with a clear directional conviction call. Format: start with [BULL/BEAR/NEUTRAL/STAGFLATION/RISK-ON/RISK-OFF]. Be quantitative. Do not hedge. Reference specific data points. End with one actionable conclusion.' },
+    { role: 'system', content: 'You are a senior market strategist writing for a sophisticated investor. Write a structured 180-word brief using exactly these labeled sections:\n\nCONVICTION: [BULL/BEAR/NEUTRAL/STAGFLATION/RISK-ON/RISK-OFF]\n\nMARKET: [1-2 sentences on equities and credit conditions with specific data]\n\nMACRO: [1-2 sentences on rates, inflation, and growth trajectory]\n\nKEY RISK: [The single biggest risk to the thesis right now]\n\nPOSITIONING: [One specific actionable conclusion]\n\nBe direct, quantitative, no hedging. Take a position.' },
     { role: 'user',   content: `Market snapshot:\n${context}\n\nTop headlines:\n${topHeadlines}\n\nWrite the brief.` },
-  ], 400)
+  ], 450)
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────

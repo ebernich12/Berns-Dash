@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import {
-  LayoutDashboard, BookOpen, LineChart,
+  LayoutDashboard, LineChart,
   Calendar, Newspaper, TrendingUp, Music, X, Menu,
 } from 'lucide-react'
 
@@ -16,7 +16,6 @@ const nav = [
   { href: '/finance',  label: 'Finance',  icon: LineChart,       color: '#64d2ff' },
   { href: '/trading',  label: 'Trading',  icon: TrendingUp,      color: '#ff453a' },
   { href: '/music',    label: 'Music',    icon: Music,           color: '#bf5af2' },
-  { href: '/classes',  label: 'Classes',  icon: BookOpen,        color: '#30d158' },
 ]
 
 export default function MobileHeader() {

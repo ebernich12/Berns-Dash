@@ -100,6 +100,21 @@ function label(score) {
   return score > 0.3 ? 'Bullish' : score < -0.3 ? 'Bearish' : 'Neutral'
 }
 
+async function writeSummary(conviction, sectors, headlines) {
+  const sectorLines = Object.entries(sectors)
+    .map(([name, d]) => `${name}: ${d.label} (${d.convictionScore.toFixed(2)}, ${d.articles} articles)`)
+    .join('\n')
+  const topLines = headlines.slice(0, 8).map(h => `- ${h.headline} (${h.source}, score=${h.sentiment})`).join('\n')
+  const text = await groq([
+    { role: 'system', content: 'You are a senior market strategist. Return ONLY valid JSON with this exact structure:\n{"summary":"2-sentence market overview","outlook":"Bullish/Bearish/Neutral — one sentence direction call","tailwinds":["tailwind 1","tailwind 2","tailwind 3"],"headwinds":["risk 1","risk 2","risk 3"],"sectors":{"SectorName":{"catalyst":"brief tailwind","risk":"brief headwind"}}}\nInclude all sectors given. No markdown, no extra text, no explanation.' },
+    { role: 'user', content: `Market conviction: ${conviction.toFixed(2)}\n\nSector scores:\n${sectorLines}\n\nTop headlines:\n${topLines}` },
+  ], 700)
+  try {
+    const match = text.match(/\{[\s\S]*\}/)
+    return match ? JSON.parse(match[0]) : null
+  } catch { return null }
+}
+
 // ── Fetchers ──────────────────────────────────────────────────────────────────
 
 async function fetchNewsAPI() {
@@ -218,13 +233,29 @@ async function run() {
   }))
 
   const conviction = convictionScore(mainScores)
-  const top10      = await rankTop10(scored).catch(() => scored.slice(0, 10))
 
   const sectors = {}
   for (const [sector] of sectorEntries) {
     const scores = sectorScores[sector] ?? []
     const score  = convictionScore(scores)
     sectors[sector] = { etf: SECTORS[sector], convictionScore: +score.toFixed(3), label: label(score), articles: sectorNews[sector].length }
+  }
+
+  const [top10Res, summaryRes] = await Promise.allSettled([
+    rankTop10(scored).catch(() => scored.slice(0, 10)),
+    writeSummary(conviction, sectors, scored),
+  ])
+
+  const top10   = top10Res.status   === 'fulfilled' ? top10Res.value   : scored.slice(0, 10)
+  const summary = summaryRes.status === 'fulfilled' ? summaryRes.value : null
+
+  if (summary?.sectors) {
+    for (const [sector] of sectorEntries) {
+      if (summary.sectors[sector]) {
+        sectors[sector].catalyst = summary.sectors[sector].catalyst ?? null
+        sectors[sector].risk     = summary.sectors[sector].risk     ?? null
+      }
+    }
   }
 
   const payload = {
@@ -234,6 +265,7 @@ async function run() {
     top10,
     sectors,
     energy,
+    summary: summary ? { summary: summary.summary, outlook: summary.outlook, tailwinds: summary.tailwinds, headwinds: summary.headwinds } : null,
   }
 
   console.log(`[MarketsAgent] conviction=${conviction.toFixed(3)} (${label(conviction)}), energy=${JSON.stringify(energy).slice(0, 80)}`)
