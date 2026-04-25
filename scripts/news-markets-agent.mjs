@@ -79,7 +79,7 @@ async function rankTop10(headlines) {
     { role: 'user', content: list },
   ], 128)
   try {
-    const match   = text.match(/\[[\s\S]*?\]/)
+    const match   = text.match(/\[[\s\d,\s-]+\]/)
     const indices = match ? JSON.parse(match[0]) : []
     return indices.slice(0, 10).map(i => headlines[i]).filter(Boolean)
   } catch { return headlines.slice(0, 10) }
@@ -145,11 +145,13 @@ async function fetchEIAPrices() {
   await Promise.allSettled(
     Object.entries(series).map(async ([key, id]) => {
       try {
-        const res  = await fetch(`https://api.eia.gov/series/?api_key=${EIA_KEY}&series_id=${id}`)
+        const url  = `https://api.eia.gov/v2/seriesid/${id}?api_key=${EIA_KEY}&data[]=value&sort[0][column]=period&sort[0][direction]=desc&length=2`
+        const res  = await fetch(url)
         const data = await res.json()
-        const pts  = data.series?.[0]?.data ?? []
+        const pts  = data.response?.data ?? []
         if (pts.length >= 2) {
-          results[key] = { value: parseFloat(pts[0][1]), prev: parseFloat(pts[1][1]), change: +(parseFloat(pts[0][1]) - parseFloat(pts[1][1])).toFixed(2) }
+          const v = parseFloat(pts[0].value), p = parseFloat(pts[1].value)
+          results[key] = { value: v, prev: p, change: +(v - p).toFixed(2) }
         }
       } catch {}
     })

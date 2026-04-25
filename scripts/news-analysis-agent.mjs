@@ -102,7 +102,7 @@ async function rankTop10(headlines) {
     { role: 'user', content: list },
   ], 128)
   try {
-    const match   = text.match(/\[[\s\S]*?\]/)
+    const match   = text.match(/\[[\s\d,\s-]+\]/)
     const indices = match ? JSON.parse(match[0]) : []
     return indices.slice(0, 10).map(i => headlines[i]).filter(Boolean)
   } catch { return headlines.slice(0, 10) }
