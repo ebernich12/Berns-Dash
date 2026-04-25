@@ -31,6 +31,28 @@ const RSS_WORLD = [
   { name: 'Reuters Business', url: 'https://feeds.reuters.com/reuters/businessNews' },
 ]
 
+const BLOCKED_SOURCES = new Set([
+  'Bleeding Green Nation', 'Big Blue View', 'Deadline', 'Variety', 'Hollywood Reporter',
+  'GSMArena.com', 'GSMArena', 'Kotaku', 'Eurogamer', 'Eurogamer.net', 'GamesIndustry.biz',
+  'IGN', 'Polygon', 'PC Gamer', 'The Hollywood Reporter', 'TMZ', 'People',
+  'Entertainment Weekly', 'E! News', 'Us Weekly',
+])
+
+const BLOCKED_KEYWORDS = [
+  'nfl draft', 'draft grades', 'nba draft', 'box office', 'moonwalks', 'reunion audio',
+  'bravo investigates', 'baby reindeer', 'cretaceous kraken', 'golden orb', 'seafloor',
+  'one-year anniversary', 'new haircuts', 'summer house', 'season 10',
+  'living nightmare', 'heartbreaking statement', 'speaks out',
+  'dave ramsey', 'furniture salesman', 'highest-paid ceo is a furniture',
+]
+
+function isRelevant(headline, source) {
+  if (BLOCKED_SOURCES.has(source)) return false
+  const lower = headline.toLowerCase()
+  if (BLOCKED_KEYWORDS.some(kw => lower.includes(kw))) return false
+  return true
+}
+
 // ── Sentiment ─────────────────────────────────────────────────────────────────
 
 async function groqCall(key, messages, max_tokens) {
@@ -150,7 +172,7 @@ async function run() {
 
   const seen = new Set()
   const all  = [...general, ...rss]
-    .filter(h => h.headline && !seen.has(h.headline) && seen.add(h.headline))
+    .filter(h => h.headline && isRelevant(h.headline, h.source) && !seen.has(h.headline) && seen.add(h.headline))
     .sort((a, b) => b.datetime - a.datetime)
     .slice(0, 30)
 

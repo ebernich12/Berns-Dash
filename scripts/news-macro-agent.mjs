@@ -205,10 +205,14 @@ async function groqAnalysis(indicators, jobs, gdp, news) {
     topHeadlines   ? `\nTop headlines:\n${topHeadlines}`    : '',
   ].filter(Boolean).join('\n')
 
-  return groq([
-    { role: 'system', content: 'You are a macroeconomic strategist at a hedge fund. Write a 200-word directional macro brief that connects the hard data to current news flow. Lead with a clear regime call (HAWKISH/DOVISH/STAGFLATION/GOLDILOCKS/RISK-OFF/etc). Cite specific numbers from the indicators. Explain what the top news stories imply for the macro outlook — rates, growth, inflation. Every sentence must contain a specific number, ticker, or causal mechanism. No hedging. Take a position.' },
+  const text = await groq([
+    { role: 'system', content: 'You are a macroeconomic strategist at a hedge fund. Return ONLY valid JSON: {"summary":"3-4 sentences connecting hard macro data to current news flow. Lead with a regime call (HAWKISH/DOVISH/STAGFLATION/GOLDILOCKS/RISK-OFF). Cite specific numbers. Explain what the top headlines imply for rates, growth, and inflation. Every sentence must contain a specific number, ticker, or causal mechanism.","outlook":"HAWKISH/DOVISH/STAGFLATION/GOLDILOCKS/RISK-OFF/RISK-ON — one sentence naming the specific data point or headline driving the call","tailwinds":["specific macro tailwind with data or mechanism","tailwind 2","tailwind 3"],"headwinds":["specific macro risk with data or mechanism","risk 2","risk 3"]}. No markdown, no extra text.' },
     { role: 'user', content: userContent },
-  ], 400)
+  ], 500)
+  try {
+    const match = text.match(/\{[\s\S]*\}/)
+    return match ? JSON.parse(match[0]) : null
+  } catch { return null }
 }
 
 async function saveHistory(indicators) {

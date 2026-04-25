@@ -566,48 +566,7 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       {/* ── MACRO ─────────────────────────────────────────────────── */}
       {tab === 'macro' && (
         <div className="space-y-6">
-          <div>
-            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Rates & Spreads</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {['fed_funds', 'dgs10', 'dgs2', 't10y2y', 'hy_spread'].map(key => {
-                const d = macro?.indicators?.[key]
-                return d ? <MacroCard key={key} label={d.label} value={d.value} change={d.change} unit="%" /> : null
-              })}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Inflation & Growth</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {['cpi', 'pce', 'unemployment', 'gdp'].map(key => {
-                const d = macro?.indicators?.[key]
-                return d ? <MacroCard key={key} label={key === 'cpi' ? 'Inflation (CPI)' : d.label} value={d.value} change={d.change} unit={key === 'unemployment' ? '%' : ''} /> : null
-              })}
-            </div>
-          </div>
-          {macro?.jobs && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Jobs · {macro.jobs.source}</p>
-              <div className="grid grid-cols-2 gap-3">
-                <MacroCard label={`Nonfarm Payrolls (${macro.jobs.period ?? ''})`} value={macro.jobs.nonfarm_payrolls ? macro.jobs.nonfarm_payrolls / 1000 : null} unit="K" />
-                <MacroCard label="Unemployment Rate" value={macro.jobs.unemployment_rate} unit="%" />
-              </div>
-            </div>
-          )}
-          {macro?.gdp && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">GDP · {macro.gdp.source}</p>
-              <MacroCard label={`Real GDP (${macro.gdp.period ?? ''})`} value={macro.gdp.value} unit="%" />
-            </div>
-          )}
-          {macro?.inventories && Object.keys(macro.inventories).length > 0 && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">EIA Inventories</p>
-              <div className="grid grid-cols-2 gap-3">
-                {macro.inventories.crude_inventory    && <MacroCard label="Crude Oil (Mbbl)"   value={macro.inventories.crude_inventory.value}   change={macro.inventories.crude_inventory.change}   />}
-                {macro.inventories.gasoline_inventory && <MacroCard label="Gasoline (Mbbl)"    value={macro.inventories.gasoline_inventory.value} change={macro.inventories.gasoline_inventory.change} />}
-              </div>
-            </div>
-          )}
+          {macro?.analysis && <SummaryCard data={macro.analysis} />}
           {macro?.history?.rates?.length > 0 && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Rates History · 120 Days</p>
@@ -638,12 +597,6 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
               <div className="bg-card border border-border rounded-xl p-4">
                 <GdpChart data={macro.history.gdp} />
               </div>
-            </div>
-          )}
-          {macro?.analysis && (
-            <div className="bg-card border border-border rounded-xl p-5">
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Macro Analysis · Groq</p>
-              <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{macro.analysis}</p>
             </div>
           )}
         </div>
