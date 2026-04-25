@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -28,14 +28,19 @@ function sentimentLabel(score: number) {
   return score > 0.3 ? 'Bullish' : score < -0.3 ? 'Bearish' : 'Neutral'
 }
 
+const TOOLTIP = {
+  contentStyle: { background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 8 },
+  labelStyle: { color: '#f5f5f7' },
+  itemStyle:  { color: '#f5f5f7', fontSize: 11 },
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function ScoreBar({ score }: { score: number }) {
-  const pct   = ((score + 1) / 2) * 100
-  const color = sentimentColor(score)
+  const pct = ((score + 1) / 2) * 100
   return (
     <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1.5">
-      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: sentimentColor(score) }} />
     </div>
   )
 }
@@ -60,8 +65,8 @@ function ConvictionBanner({ label: lbl, score, sublabel }: { label: string; scor
 
 function SentimentBadge({ score }: { score: number }) {
   const sl = sentimentLabel(score)
-  if (sl === 'Bullish') return <span className="text-xs px-1.5 py-0.5 rounded bg-green/10 text-green font-medium">Bull</span>
-  if (sl === 'Bearish') return <span className="text-xs px-1.5 py-0.5 rounded bg-red/10 text-red font-medium">Bear</span>
+  if (sl === 'Bullish') return <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 font-medium">Bull</span>
+  if (sl === 'Bearish') return <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-medium">Bear</span>
   return <span className="text-xs px-1.5 py-0.5 rounded bg-white/5 text-muted font-medium">Neutral</span>
 }
 
@@ -79,7 +84,7 @@ function HeadlineFeed({ items }: { items: Headline[] }) {
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                {h.breaking   && <span className="text-xs px-1.5 py-0.5 rounded bg-accent/20 text-accent font-bold uppercase tracking-wide">Breaking</span>}
+                {h.breaking   && <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold uppercase tracking-wide">Breaking</span>}
                 {h.highImpact && <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 font-bold uppercase tracking-wide">High Impact</span>}
                 {h.category   && <span className="text-xs px-1.5 py-0.5 rounded bg-white/5 text-muted capitalize">{h.category}</span>}
               </div>
@@ -109,10 +114,102 @@ function MacroCard({ label, value, change, unit = '' }: { label: string; value: 
       <p className="text-xs text-muted mb-2">{label}</p>
       <p className="text-xl font-semibold text-white">{value != null ? `${value.toFixed(2)}${unit}` : '—'}</p>
       {change != null && (
-        <p className={`text-xs mt-1.5 font-mono ${change >= 0 ? 'text-green' : 'text-red'}`}>
+        <p className={`text-xs mt-1.5 font-mono ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
           {change >= 0 ? '+' : ''}{change.toFixed(3)}
         </p>
       )}
+    </div>
+  )
+}
+
+function MacroStripCard({ label, value, change, unit = '' }: { label: string; value: number | null; change?: number | null; unit?: string }) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-3 text-center">
+      <p className="text-xs text-muted mb-1 font-mono uppercase tracking-widest truncate">{label}</p>
+      <p className="text-lg font-semibold text-white">{value != null ? `${value.toFixed(2)}${unit}` : '—'}</p>
+      {change != null && (
+        <p className={`text-xs font-mono mt-0.5 ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {change >= 0 ? '+' : ''}{change.toFixed(2)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function SummaryCard({ data }: { data: any }) {
+  if (!data) return null
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+      {data.summary && <p className="text-sm text-white leading-relaxed">{data.summary}</p>}
+      {data.outlook && (
+        <p className="text-sm font-medium" style={{ color: data.outlook.toLowerCase().includes('bull') || data.outlook.toLowerCase().includes('risk-on') ? '#30d158' : data.outlook.toLowerCase().includes('bear') || data.outlook.toLowerCase().includes('risk-off') ? '#ff453a' : '#8e8e93' }}>
+          {data.outlook}
+        </p>
+      )}
+      {(data.tailwinds?.length > 0 || data.headwinds?.length > 0) && (
+        <div className="grid grid-cols-2 gap-4 pt-1">
+          {data.tailwinds?.length > 0 && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-2">Tailwinds</p>
+              <ul className="space-y-1.5">
+                {data.tailwinds.map((t: string, i: number) => (
+                  <li key={i} className="text-xs text-green-400 flex gap-1.5 leading-snug"><span className="mt-0.5 flex-shrink-0">↑</span>{t}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {data.headwinds?.length > 0 && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-2">Headwinds</p>
+              <ul className="space-y-1.5">
+                {data.headwinds.map((h: string, i: number) => (
+                  <li key={i} className="text-xs text-red-400 flex gap-1.5 leading-snug"><span className="mt-0.5 flex-shrink-0">↓</span>{h}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BriefCard({ text }: { text: string }) {
+  if (!text) return null
+  const sections = [
+    { key: 'CONVICTION', color: '#f5f5f7' },
+    { key: 'MARKET',     color: '#f5f5f7' },
+    { key: 'MACRO',      color: '#f5f5f7' },
+    { key: 'KEY RISK',   color: '#ff9f0a' },
+    { key: 'POSITIONING', color: '#0a84ff' },
+  ]
+  const parsed: { label: string; text: string; color: string }[] = []
+  let remaining = text
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i]
+    const pattern = new RegExp(`${s.key}:([\\s\\S]*?)(?=${sections.slice(i + 1).map(n => n.key + ':').join('|')}|$)`, 'i')
+    const match = remaining.match(pattern)
+    if (match) {
+      parsed.push({ label: s.key, text: match[1].trim(), color: s.color })
+    }
+  }
+  if (!parsed.length) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-5">
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Market Brief · Groq</p>
+        <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{text}</p>
+      </div>
+    )
+  }
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+      <p className="text-xs text-muted font-mono uppercase tracking-widest">Market Brief · Groq</p>
+      {parsed.map((s, i) => (
+        <div key={i}>
+          <p className="text-xs font-mono uppercase tracking-widest mb-1" style={{ color: '#636366' }}>{s.label}</p>
+          <p className="text-sm leading-relaxed" style={{ color: s.label === 'CONVICTION' ? (s.text.includes('BULL') || s.text.includes('RISK-ON') ? '#30d158' : s.text.includes('BEAR') || s.text.includes('RISK-OFF') ? '#ff453a' : s.text.includes('STAGFLATION') ? '#ff9f0a' : '#f5f5f7') : s.color }}>{s.text}</p>
+        </div>
+      ))}
     </div>
   )
 }
@@ -130,9 +227,10 @@ function RatesChart({ data }: { data: any[] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
         <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(5)} interval={Math.floor(data.length / 6)} />
         <YAxis tick={{ fill: '#636366', fontSize: 10 }} />
-        <Tooltip contentStyle={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 8 }} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7', fontSize: 11 }} />
+        <Tooltip {...TOOLTIP} />
         <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
         {Object.entries(CHART_COLORS).map(([key, color]) => (
           <Line key={key} type="monotone" dataKey={key} stroke={color} dot={false} strokeWidth={1.5} name={key.replace(/_/g, ' ').toUpperCase()} connectNulls />
@@ -142,7 +240,7 @@ function RatesChart({ data }: { data: any[] }) {
   )
 }
 
-function CpiPceChart({ cpi, pce }: { cpi: any[]; pce: any[] }) {
+function InflationChart({ cpi, pce }: { cpi: any[]; pce: any[] }) {
   const merged: Record<string, any> = {}
   for (const p of cpi) merged[p.date] = { ...merged[p.date], date: p.date, cpi: p.value }
   for (const p of pce) merged[p.date] = { ...merged[p.date], date: p.date, pce: p.value }
@@ -151,9 +249,10 @@ function CpiPceChart({ cpi, pce }: { cpi: any[]; pce: any[] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-        <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(5)} interval={Math.floor(data.length / 5)} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
+        <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(data.length / 8)} />
         <YAxis tick={{ fill: '#636366', fontSize: 10 }} />
-        <Tooltip contentStyle={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 8 }} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7', fontSize: 11 }} />
+        <Tooltip {...TOOLTIP} />
         <Line type="monotone" dataKey="cpi" stroke="#ff9f0a" dot={false} strokeWidth={1.5} name="CPI" connectNulls />
         <Line type="monotone" dataKey="pce" stroke="#0a84ff" dot={false} strokeWidth={1.5} name="PCE" connectNulls />
       </LineChart>
@@ -161,15 +260,59 @@ function CpiPceChart({ cpi, pce }: { cpi: any[]; pce: any[] }) {
   )
 }
 
+function UnemploymentChart({ data }: { data: any[] }) {
+  if (!data?.length) return <p className="text-sm text-muted">No history yet.</p>
+  return (
+    <ResponsiveContainer width="100%" height={180}>
+      <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
+        <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(data.length / 8)} />
+        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} />
+        <Tooltip {...TOOLTIP} formatter={(v: any) => [`${v}%`, 'Unemployment']} />
+        <Line type="monotone" dataKey="value" stroke="#ff453a" dot={false} strokeWidth={1.5} name="Unemployment" connectNulls />
+      </LineChart>
+    </ResponsiveContainer>
+  )
+}
+
+function GdpChart({ data }: { data: any[] }) {
+  if (!data?.length) return <p className="text-sm text-muted">No history yet.</p>
+  const changes = data.map((d, i) => ({
+    date: d.date,
+    change: i > 0 ? +(((d.value - data[i - 1].value) / data[i - 1].value) * 100).toFixed(2) : null,
+  })).filter(d => d.change !== null)
+  return (
+    <ResponsiveContainer width="100%" height={180}>
+      <BarChart data={changes} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
+        <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(changes.length / 8)} />
+        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} />
+        <Tooltip {...TOOLTIP} formatter={(v: any) => [`${v}%`, 'GDP QoQ']} />
+        <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
+        <Bar dataKey="change" radius={[2, 2, 0, 0]}>
+          {changes.map((d, i) => (
+            <Cell key={i} fill={(d.change ?? 0) >= 0 ? '#30d158' : '#ff453a'} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
 function SentimentHistoryChart({ data }: { data: any[] }) {
   if (!data?.length) return <p className="text-sm text-muted">No history yet — runs every 2 hours.</p>
-  const formatted = data.map(d => ({ ...d, date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' }) }))
+  const formatted = data.map(d => {
+    const dt = new Date(d.date)
+    return { ...d, label: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
+  })
+  const every = Math.max(1, Math.floor(formatted.length / 10))
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={220}>
       <LineChart data={formatted} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-        <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} interval={Math.floor(formatted.length / 6)} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
+        <XAxis dataKey="label" tick={{ fill: '#636366', fontSize: 10 }} interval={every} />
         <YAxis domain={[-1, 1]} tick={{ fill: '#636366', fontSize: 10 }} />
-        <Tooltip contentStyle={{ background: '#1c1c1e', border: '1px solid #2c2c2e', borderRadius: 8 }} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7', fontSize: 11 }} />
+        <Tooltip {...TOOLTIP} />
         <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
         <Line type="monotone" dataKey="markets" stroke="#0a84ff" dot={false} strokeWidth={1.5} name="Markets" connectNulls />
         <Line type="monotone" dataKey="world"   stroke="#ff453a" dot={false} strokeWidth={1.5} name="World"   connectNulls />
@@ -196,7 +339,7 @@ const TABS: { key: Tab; label: string }[] = [
 // ── Main Client ───────────────────────────────────────────────────────────────
 
 export default function NewsClient({ markets, world, tech, macro, analysis }: {
-  markets:  any; world: any; tech: any; macro: any; analysis: any
+  markets: any; world: any; tech: any; macro: any; analysis: any
 }) {
   const [tab, setTab] = useState<Tab>('home')
 
@@ -215,19 +358,40 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       {/* ── HOME ──────────────────────────────────────────────────── */}
       {tab === 'home' && (
         <div className="space-y-6">
-          {/* Conviction banners */}
+          {/* Global conviction */}
+          {analysis?.global_conviction && (
+            <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
+          )}
+
+          {/* Macro strip */}
+          {macro?.indicators && (
+            <div className="grid grid-cols-5 gap-3">
+              {macro.indicators.fed_funds   && <MacroStripCard label="Fed Funds"   value={macro.indicators.fed_funds.value}   change={macro.indicators.fed_funds.change}   unit="%" />}
+              {macro.indicators.dgs10       && <MacroStripCard label="10Y"         value={macro.indicators.dgs10.value}       change={macro.indicators.dgs10.change}       unit="%" />}
+              {macro.indicators.cpi         && <MacroStripCard label="Inflation"   value={macro.indicators.cpi.value}         change={macro.indicators.cpi.change}            />}
+              {macro.indicators.unemployment && <MacroStripCard label="Unemploymt"  value={macro.indicators.unemployment.value} change={macro.indicators.unemployment.change} unit="%" />}
+              {macro.indicators.gdp         && <MacroStripCard label="GDP"         value={macro.indicators.gdp.value}         change={macro.indicators.gdp.change}            />}
+            </div>
+          )}
+
+          {/* Market / World / Tech banners */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {markets?.market_sentiment && <ConvictionBanner label="Markets" score={markets.market_sentiment.score} sublabel="Business & financial" />}
             {world?.world_sentiment    && <ConvictionBanner label="World"   score={world.world_sentiment.score}   sublabel="Geopolitical & general" />}
             {tech?.tech_sentiment      && <ConvictionBanner label="Tech"    score={tech.tech_sentiment.score}     sublabel="Technology sector" />}
           </div>
-          {/* Top 10 global headlines */}
+
+          {/* Top stories */}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top Stories</p>
             <div className="bg-card border border-border rounded-xl p-4">
-              <HeadlineFeed items={analysis?.top10 ?? []} />
+              {analysis?.top10?.length > 0
+                ? <HeadlineFeed items={analysis.top10} />
+                : <p className="text-sm text-muted py-2">Analysis agent is warming up — check back after the next run.</p>
+              }
             </div>
           </div>
+
           {/* Sector grid */}
           {markets?.sectors && Object.keys(markets.sectors).length > 0 && (
             <div>
@@ -254,6 +418,12 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
           {markets?.market_sentiment && (
             <ConvictionBanner label="Market Conviction" score={markets.market_sentiment.score} sublabel="Reuters · WSJ · FT · Finnhub · NewsAPI" />
           )}
+
+          {/* Summary + outlook */}
+          {markets?.summary && (
+            <SummaryCard data={markets.summary} />
+          )}
+
           {/* Energy prices */}
           {markets?.energy && Object.keys(markets.energy).length > 0 && (
             <div>
@@ -265,22 +435,38 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
               </div>
             </div>
           )}
-          {/* Sector sentiment */}
+
+          {/* Sector sentiment + catalysts */}
           {markets?.sectors && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Sector Sentiment</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Object.entries(markets.sectors).map(([sector, d]: [string, any]) => (
                   <div key={sector} className="bg-card border border-border rounded-xl p-4">
-                    <p className="text-xs text-muted mb-0.5">{sector}</p>
-                    <p className="text-xs font-mono text-muted mb-2">{d.etf}</p>
-                    <p className="text-sm font-semibold" style={{ color: sentimentColor(d.convictionScore) }}>{d.label}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="text-xs text-muted">{sector}</p>
+                        <p className="text-xs font-mono text-muted">{d.etf}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold" style={{ color: sentimentColor(d.convictionScore) }}>{d.label}</p>
+                        <p className="text-xs font-mono text-muted">{d.articles} articles</p>
+                      </div>
+                    </div>
                     <ScoreBar score={d.convictionScore} />
+                    {(d.catalyst || d.risk) && (
+                      <div className="mt-3 space-y-1">
+                        {d.catalyst && <p className="text-xs text-green-400 flex gap-1.5"><span>↑</span>{d.catalyst}</p>}
+                        {d.risk     && <p className="text-xs text-red-400   flex gap-1.5"><span>↓</span>{d.risk}</p>}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Headlines */}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Market Headlines</p>
             <div className="bg-card border border-border rounded-xl p-4">
@@ -296,6 +482,7 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
           {world?.world_sentiment && (
             <ConvictionBanner label="World Conviction" score={world.world_sentiment.score} sublabel="Reuters World · NewsAPI General" />
           )}
+          {world?.summary && <SummaryCard data={world.summary} />}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">World Headlines</p>
             <div className="bg-card border border-border rounded-xl p-4">
@@ -311,6 +498,7 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
           {tech?.tech_sentiment && (
             <ConvictionBanner label="Tech Conviction" score={tech.tech_sentiment.score} sublabel="NewsAPI Tech · Finnhub (AAPL/MSFT/NVDA/GOOGL/META)" />
           )}
+          {tech?.summary && <SummaryCard data={tech.summary} />}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Technology Headlines</p>
             <div className="bg-card border border-border rounded-xl p-4">
@@ -323,7 +511,6 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       {/* ── MACRO ─────────────────────────────────────────────────── */}
       {tab === 'macro' && (
         <div className="space-y-6">
-          {/* Key indicators */}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Rates & Spreads</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -338,40 +525,34 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {['cpi', 'pce', 'unemployment', 'gdp'].map(key => {
                 const d = macro?.indicators?.[key]
-                return d ? <MacroCard key={key} label={d.label} value={d.value} change={d.change} unit={key === 'unemployment' ? '%' : ''} /> : null
+                return d ? <MacroCard key={key} label={key === 'cpi' ? 'Inflation (CPI)' : d.label} value={d.value} change={d.change} unit={key === 'unemployment' ? '%' : ''} /> : null
               })}
             </div>
           </div>
-          {/* Jobs */}
           {macro?.jobs && (
             <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Jobs Report · {macro.jobs.source}</p>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Jobs · {macro.jobs.source}</p>
               <div className="grid grid-cols-2 gap-3">
                 <MacroCard label={`Nonfarm Payrolls (${macro.jobs.period ?? ''})`} value={macro.jobs.nonfarm_payrolls ? macro.jobs.nonfarm_payrolls / 1000 : null} unit="K" />
                 <MacroCard label="Unemployment Rate" value={macro.jobs.unemployment_rate} unit="%" />
               </div>
             </div>
           )}
-          {/* GDP */}
           {macro?.gdp && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">GDP · {macro.gdp.source}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <MacroCard label={`Real GDP (${macro.gdp.period ?? ''})`} value={macro.gdp.value} unit="%" />
-              </div>
+              <MacroCard label={`Real GDP (${macro.gdp.period ?? ''})`} value={macro.gdp.value} unit="%" />
             </div>
           )}
-          {/* EIA Inventories */}
           {macro?.inventories && Object.keys(macro.inventories).length > 0 && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">EIA Inventories</p>
               <div className="grid grid-cols-2 gap-3">
-                {macro.inventories.crude_inventory    && <MacroCard label="Crude Oil Inventory (Mbbl)"   value={macro.inventories.crude_inventory.value}    change={macro.inventories.crude_inventory.change}    />}
-                {macro.inventories.gasoline_inventory && <MacroCard label="Gasoline Inventory (Mbbl)"    value={macro.inventories.gasoline_inventory.value}  change={macro.inventories.gasoline_inventory.change}  />}
+                {macro.inventories.crude_inventory    && <MacroCard label="Crude Oil (Mbbl)"   value={macro.inventories.crude_inventory.value}   change={macro.inventories.crude_inventory.change}   />}
+                {macro.inventories.gasoline_inventory && <MacroCard label="Gasoline (Mbbl)"    value={macro.inventories.gasoline_inventory.value} change={macro.inventories.gasoline_inventory.change} />}
               </div>
             </div>
           )}
-          {/* Rates chart */}
           {macro?.history?.rates?.length > 0 && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Rates History · 120 Days</p>
@@ -380,16 +561,30 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
               </div>
             </div>
           )}
-          {/* CPI / PCE chart */}
           {(macro?.history?.cpi?.length > 0 || macro?.history?.pce?.length > 0) && (
             <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">CPI & PCE History</p>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Inflation History · 5 Years</p>
               <div className="bg-card border border-border rounded-xl p-4">
-                <CpiPceChart cpi={macro.history.cpi ?? []} pce={macro.history.pce ?? []} />
+                <InflationChart cpi={macro.history.cpi ?? []} pce={macro.history.pce ?? []} />
               </div>
             </div>
           )}
-          {/* Macro analysis */}
+          {macro?.history?.unemployment?.length > 0 && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Unemployment Rate · 5 Years</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <UnemploymentChart data={macro.history.unemployment} />
+              </div>
+            </div>
+          )}
+          {macro?.history?.gdp?.length > 0 && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Real GDP Growth · 10 Years</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <GdpChart data={macro.history.gdp} />
+              </div>
+            </div>
+          )}
           {macro?.analysis && (
             <div className="bg-card border border-border rounded-xl p-5">
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Macro Analysis · Groq</p>
@@ -402,10 +597,10 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       {/* ── ANALYSIS ──────────────────────────────────────────────── */}
       {tab === 'analysis' && (
         <div className="space-y-6">
-          {/* Global conviction */}
           {analysis?.global_conviction && (
             <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
           )}
+
           {/* Sector breakdown */}
           {analysis?.sectors && (
             <div>
@@ -424,21 +619,49 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
               </div>
             </div>
           )}
-          {/* Directional brief */}
-          {analysis?.brief && (
-            <div className="bg-card border border-border rounded-xl p-5">
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Market Brief · Groq Directional</p>
-              <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{analysis.brief}</p>
-            </div>
-          )}
-          {/* Sentiment history chart */}
+
+          {/* Structured brief */}
+          {analysis?.brief && <BriefCard text={analysis.brief} />}
+
+          {/* Sentiment history */}
           <div>
-            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Sentiment History</p>
+            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Sentiment History · 10 Weeks</p>
             <div className="bg-card border border-border rounded-xl p-4">
               <SentimentHistoryChart data={analysis?.sentiment_history ?? []} />
             </div>
           </div>
-          {/* Top 10 ranked headlines */}
+
+          {/* Inflation chart */}
+          {(macro?.history?.cpi?.length > 0 || macro?.history?.pce?.length > 0) && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Inflation · CPI & PCE · 5 Years</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <InflationChart cpi={macro?.history?.cpi ?? []} pce={macro?.history?.pce ?? []} />
+              </div>
+            </div>
+          )}
+
+          {/* Unemployment chart */}
+          {macro?.history?.unemployment?.length > 0 && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Unemployment Rate · 5 Years</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <UnemploymentChart data={macro.history.unemployment} />
+              </div>
+            </div>
+          )}
+
+          {/* GDP chart */}
+          {macro?.history?.gdp?.length > 0 && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Real GDP Growth · 10 Years</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <GdpChart data={macro.history.gdp} />
+              </div>
+            </div>
+          )}
+
+          {/* Top 10 global stories */}
           {analysis?.top10?.length > 0 && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top 10 Global Stories · Groq Ranked</p>

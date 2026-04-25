@@ -223,11 +223,13 @@ async function run() {
     }
   })
 
-  // Fetch 120-day history for rates, CPI, PCE in parallel
-  const [ratesHistRes, cpiHistRes, pceHistRes, jobsRes, gdpRes, eiaRes] = await Promise.allSettled([
+  // Fetch history in parallel — extended ranges for inflation/growth series
+  const [ratesHistRes, cpiHistRes, pceHistRes, unrateHistRes, gdpHistRes, jobsRes, gdpRes, eiaRes] = await Promise.allSettled([
     Promise.all(RATE_SERIES.map(s => fredHistory(s.id, 120).then(h => ({ key: s.key, data: h })))),
-    fredHistory('CPIAUCSL', 120),
-    fredHistory('PCEPI', 120),
+    fredHistory('CPIAUCSL', 1825),  // 5 years monthly
+    fredHistory('PCEPI', 1825),
+    fredHistory('UNRATE', 1825),    // 5 years monthly unemployment
+    fredHistory('GDPC1', 3650),     // 10 years quarterly GDP
     fetchBLS(),
     fetchBEA(),
     fetchEIAInventories(),
@@ -247,14 +249,16 @@ async function run() {
     ratesHistory = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date))
   }
 
-  const cpiHistory  = cpiHistRes.status  === 'fulfilled' ? cpiHistRes.value  : []
-  const pceHistory  = pceHistRes.status  === 'fulfilled' ? pceHistRes.value  : []
-  const jobs        = jobsRes.status     === 'fulfilled' ? jobsRes.value     : null
-  const gdp         = gdpRes.status      === 'fulfilled' ? gdpRes.value      : null
-  const inventories = eiaRes.status      === 'fulfilled' ? eiaRes.value      : {}
+  const cpiHistory        = cpiHistRes.status    === 'fulfilled' ? cpiHistRes.value    : []
+  const pceHistory        = pceHistRes.status    === 'fulfilled' ? pceHistRes.value    : []
+  const unrateHistory     = unrateHistRes.status === 'fulfilled' ? unrateHistRes.value : []
+  const gdpHistory        = gdpHistRes.status    === 'fulfilled' ? gdpHistRes.value    : []
+  const jobs              = jobsRes.status        === 'fulfilled' ? jobsRes.value        : null
+  const gdp               = gdpRes.status         === 'fulfilled' ? gdpRes.value         : null
+  const inventories       = eiaRes.status         === 'fulfilled' ? eiaRes.value         : {}
 
   console.log(`[MacroAgent] indicators: ${Object.keys(indicators).join(', ')}`)
-  console.log(`[MacroAgent] history: rates=${ratesHistory.length}pts, cpi=${cpiHistory.length}pts, pce=${pceHistory.length}pts`)
+  console.log(`[MacroAgent] history: rates=${ratesHistory.length}pts, cpi=${cpiHistory.length}pts, unemployment=${unrateHistory.length}pts, gdp=${gdpHistory.length}pts`)
 
   const [analysis, dbHistory] = await Promise.allSettled([
     groqAnalysis(indicators, jobs, gdp),
@@ -265,10 +269,12 @@ async function run() {
     updated_at:   new Date().toISOString(),
     indicators,
     history: {
-      rates:  ratesHistory,
-      cpi:    cpiHistory,
-      pce:    pceHistory,
-      db:     dbHistory.status === 'fulfilled' ? dbHistory.value : [],
+      rates:        ratesHistory,
+      cpi:          cpiHistory,
+      pce:          pceHistory,
+      unemployment: unrateHistory,
+      gdp:          gdpHistory,
+      db:           dbHistory.status === 'fulfilled' ? dbHistory.value : [],
     },
     jobs,
     gdp,
