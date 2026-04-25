@@ -148,7 +148,6 @@ async function fetchInstagram() {
         accountInsights[metric.name] = metric.values?.reduce((s, v) => s + (v.value ?? 0), 0) ?? 0
       }
     }
-    console.log('IG insights:', JSON.stringify(accountInsights))
   } catch (e) { console.warn('IG views failed:', e.message) }
 
   return {
