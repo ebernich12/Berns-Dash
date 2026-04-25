@@ -1,6 +1,6 @@
-#!/usr/bin/env node
-// scripts/cally.mjs — Calendar Agent (Gemini 2.0 Flash)
-// Fetches Canvas ICS, Google Calendar, FRED releases, Earnings → posts to dashboard
+﻿#!/usr/bin/env node
+// scripts/cally.mjs — Calendar Agent (Groq llama-3.3-70b)
+// Fetches Canvas ICS, Google Calendar, Earnings → posts to dashboard
 
 import { readFileSync, appendFileSync } from 'fs'
 import { resolve, dirname } from 'path'
@@ -33,7 +33,6 @@ function log(msg) {
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 function toET(d) {
-  // Returns YYYY-MM-DD in Eastern Time (UTC-4 EDT / UTC-5 EST)
   const offset = isDST(d) ? 4 : 5
   return new Date(d.getTime() - offset * 3600_000).toISOString().slice(0, 10)
 }
@@ -66,18 +65,15 @@ function parseICS(text) {
 
     let date
     if (dtRaw.length >= 13) {
-      // datetime: 20260422T040000Z
       const y = dtRaw.slice(0,4), mo = dtRaw.slice(4,6), d = dtRaw.slice(6,8)
       const h = dtRaw.slice(9,11), mi = dtRaw.slice(11,13)
       const utc = new Date(`${y}-${mo}-${d}T${h}:${mi}:00Z`)
       date = toET(utc)
     } else {
-      // date only: 20260422
       date = `${dtRaw.slice(0,4)}-${dtRaw.slice(4,6)}-${dtRaw.slice(6,8)}`
     }
 
     const rawSummary = (get('SUMMARY') || '').replace(/\\,/g, ',')
-    // Canvas format: "Title [Course Name]"
     const courseMatch = rawSummary.match(/^(.+?)\s*\[(.+)\]$/)
     const title  = courseMatch ? courseMatch[1].trim() : rawSummary
     const course = courseMatch ? courseMatch[2].trim() : ''
@@ -101,26 +97,26 @@ async function fetchJSON(url, opts = {}) {
   return res.json()
 }
 
-async function geminiCall(prompt, keys) {
-  const keyList = Array.isArray(keys) ? keys : [keys]
-  for (const key of keyList) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${key}`,
-      {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          contents:         [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 512 },
-        }),
-      }
-    )
-    if (res.status === 429) { log(`Gemini key exhausted, trying next...`); continue }
-    if (!res.ok) { const b = await res.text().catch(() => ''); throw new Error(`Gemini HTTP ${res.status}: ${b.slice(0,200)}`) }
-    const data = await res.json()
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+async function groqCall(prompt, apiKey) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model:       'llama-3.3-70b-versatile',
+      messages:    [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      max_tokens:  2048,
+    }),
+  })
+  if (!res.ok) {
+    const b = await res.text().catch(() => '')
+    throw new Error(`Groq HTTP ${res.status}: ${b.slice(0, 200)}`)
   }
-  throw new Error('All Gemini API keys exhausted (429)')
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content || '[]'
 }
 
 // ── Canvas ────────────────────────────────────────────────────────────────────
@@ -179,43 +175,13 @@ async function fetchGcal(clientId, clientSecret, refreshToken) {
   }))
 }
 
-// ── Economic Calendar (Finnhub) ───────────────────────────────────────────────
-async function fetchEcon(apiKey) {
-  log('Fetching Finnhub economic calendar...')
-  const today = toET(new Date())
-  const in7   = toET(daysFromNow(7))
-  const data  = await fetchJSON(
-    `https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${in7}&token=${apiKey}`
-  )
-  return (data.economicCalendar || [])
-    .filter(e => e.country === 'US' && (e.impact === 'high' || e.impact === 'medium'))
-    .map(e => ({ event: e.event, date: e.date, time: e.time || null, impact: e.impact }))
-}
-
-// ── Gemini econ curation ──────────────────────────────────────────────────────
-async function curateEcon(events, geminiKeys) {
-  log(`Curating ${events.length} economic events with Gemini...`)
-  if (events.length === 0) return []
-
-  const prompt = `You are a macro analyst. From this list of upcoming US economic data releases, pick the top 7 most market-moving (or all if fewer than 7). For each, add a "summary" field: one sentence on what this release measures and why traders watch it. Return ONLY a JSON array with fields: event, date, time, impact, summary. No markdown, no explanation.\n\n${JSON.stringify(events)}`
-
-  try {
-    const raw   = await geminiCall(prompt, geminiKeys)
-    const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(clean)
-  } catch (e) {
-    log(`Gemini econ failed (${e.message}), returning raw events`)
-    return events.slice(0, 7)
-  }
-}
-
 // ── Earnings ──────────────────────────────────────────────────────────────────
 async function fetchEarnings(apiKey) {
   log('Fetching earnings...')
   const today = toET(new Date())
-  const in7   = toET(daysFromNow(7))
+  const in14  = toET(daysFromNow(14))
   const data  = await fetchJSON(
-    `https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${in7}&token=${apiKey}`
+    `https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${in14}&token=${apiKey}`
   )
   return (data.earningsCalendar || [])
     .filter(e => e.symbol)
@@ -225,22 +191,52 @@ async function fetchEarnings(apiKey) {
       hour:        e.hour || 'amc',
       epsEstimate: e.epsEstimate ?? null,
     }))
-    .slice(0, 20)
+    .slice(0, 40)
 }
 
-async function curateEarnings(earnings, geminiKeys) {
-  log(`Curating ${earnings.length} earnings reports with Gemini...`)
+async function curateEarnings(earnings, groqKey) {
+  log(`Curating ${earnings.length} earnings reports with Groq...`)
   if (earnings.length === 0) return []
 
-  const prompt = `You are a financial analyst. From this list of upcoming earnings reports, pick the top 7 most market-moving companies — prioritize large-cap, high analyst attention, sector bellwethers (e.g. FAANG, banks, industrials). For each, add a "name" field (full company name, e.g. "Apple Inc.") and a "summary" field (one sentence on what to watch for in their report). Return ONLY a JSON array with fields: symbol, name, date, hour, epsEstimate, summary. No markdown, no explanation.\n\n${JSON.stringify(earnings)}`
+  const prompt = `You are a senior sell-side equity analyst preparing an earnings preview briefing for a finance dashboard. From the list of upcoming earnings reports below, select the 10 most market-moving companies.
+
+SELECTION PRIORITY: mega-cap tech (FAANG, MSFT, NVDA), major banks and financials, sector bellwethers (industrials, consumer staples, healthcare), companies with high analyst coverage and options activity.
+
+For each selected company, return EXACTLY this JSON structure:
+{
+  "symbol": "AAPL",
+  "name": "Apple Inc.",
+  "sector": "Technology",
+  "date": "2026-04-28",
+  "hour": "amc",
+  "epsEstimate": 1.65,
+  "why_it_matters": "Single sentence on why this company moves the broader market or its sector — be specific about market cap, index weight, or macro read-through.",
+  "what_to_watch": [
+    "Specific metric or guidance item #1 — e.g. iPhone unit sales vs. 52M consensus",
+    "Specific metric or guidance item #2 — e.g. Services revenue growth vs. 14% YoY estimate",
+    "Specific metric or guidance item #3 — e.g. FY26 EPS guidance vs. $7.20 street estimate"
+  ],
+  "summary": "One punchy sentence capturing the single biggest question heading into this report."
+}
+
+STRICT RULES:
+- Return ONLY a valid JSON array. No markdown, no code blocks, no explanation before or after.
+- why_it_matters must name specific numbers, weights, or macro linkages — not generic phrases like "widely watched" or "closely followed".
+- Each what_to_watch item must name a specific metric and a specific consensus estimate or comparison point. Never write "revenue growth" alone — write "Services revenue growth vs. 14% YoY consensus".
+- summary must be one sentence, punchy, and not repeat what_to_watch verbatim.
+- Sort the array by date ascending.
+- All 9 fields are required for every entry. Do not omit any.
+
+EARNINGS LIST:
+${JSON.stringify(earnings)}`
 
   try {
-    const raw   = await geminiCall(prompt, geminiKeys)
+    const raw   = await groqCall(prompt, groqKey)
     const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     return JSON.parse(clean)
   } catch (e) {
-    log(`Gemini earnings failed (${e.message}), returning earliest 7 by date`)
-    return earnings.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 7)
+    log(`Groq earnings failed (${e.message}), returning earliest 10 by date`)
+    return earnings.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10)
   }
 }
 
@@ -266,13 +262,10 @@ async function main() {
   const env = loadEnv(ENV_PATH)
 
   const required = ['CANVAS_ICS_URL','GOOGLE_CLIENT_ID','GOOGLE_CLIENT_SECRET',
-                    'GOOGLE_REFRESH_TOKEN','FINNHUB_API_KEY',
-                    'GEMINI_API_KEY','CRON_SECRET']
-  // Note: economic calendar removed — TradingView live widget used on page instead
+                    'GOOGLE_REFRESH_TOKEN','FINNHUB_API_KEY','GROQ_API_KEY','CRON_SECRET']
   const missing = required.filter(k => !env[k])
   if (missing.length) { log(`Missing env vars: ${missing.join(', ')}`); process.exit(1) }
 
-  const geminiKeys = [env.GEMINI_API_KEY, env.GEMINI_API_KEY_2, env.GEMINI_API_KEY_3].filter(Boolean)
   const results = { canvas: [], google: [], economic: [], earnings: [] }
 
   await Promise.allSettled([
@@ -287,7 +280,7 @@ async function main() {
     (async () => {
       try {
         const earn = await fetchEarnings(env.FINNHUB_API_KEY)
-        results.earnings = await curateEarnings(earn, geminiKeys)
+        results.earnings = await curateEarnings(earn, env.GROQ_API_KEY)
         log(`Earnings: ${results.earnings.length} curated reports`)
       } catch (e) { log(`ERROR Earnings: ${e.message}`) }
     })(),

@@ -1,6 +1,7 @@
 import Card from '@/components/Card'
 import PageHeader from '@/components/PageHeader'
 import { getSnapshot } from '@/lib/db'
+import { fmtDateTimeET } from '@/lib/time'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,7 @@ export default async function FinancePage() {
     <div>
       <PageHeader
         title="Finance"
-        subtitle={ts ? `Updated ${new Date(ts).toLocaleString()}` : 'Waiting for TradingAgent'}
+        subtitle={ts ? `Updated ${fmtDateTimeET(ts)} ET` : 'Waiting for TradingAgent'}
       />
 
       {/* Markets */}

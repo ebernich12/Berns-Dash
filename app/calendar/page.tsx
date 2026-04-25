@@ -1,5 +1,6 @@
 import PageHeader from '@/components/PageHeader'
 import { getSnapshot } from '@/lib/db'
+import { todayET } from '@/lib/time'
 import CalendarClient from './CalendarClient'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +24,7 @@ export default async function CalendarPage() {
   const earnings: any[] = calData?.earnings ?? []
   const econ:     any[] = calData?.economic ?? []
 
-  const today = new Date().toLocaleDateString('en-CA')
+  const today = todayET()
 
   const canvas7 = canvas.filter(e =>
     Math.ceil((parseLocal(e.date).getTime() - Date.now()) / 86400_000) >= 0 &&

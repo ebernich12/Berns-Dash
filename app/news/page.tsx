@@ -1,6 +1,7 @@
 import Card from '@/components/Card'
 import PageHeader from '@/components/PageHeader'
 import { getSnapshot } from '@/lib/db'
+import { fmtDateTimeET } from '@/lib/time'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,7 @@ export default async function NewsPage() {
     <div>
       <PageHeader
         title="News & Sentiment"
-        subtitle={ts ? `Collected ${new Date(ts).toLocaleString()}` : 'Waiting for FinanceAgent'}
+        subtitle={ts ? `Collected ${fmtDateTimeET(ts)} ET` : 'Waiting for FinanceAgent'}
       />
 
       {/* Sentiment cards */}

@@ -1,10 +1,11 @@
 import { getSnapshot } from '@/lib/db'
+import { todayET } from '@/lib/time'
 import HomeModules from '@/components/HomeModules'
 
 export const dynamic = 'force-dynamic'
 
 function daysUntil(dateStr: string) {
-  const today = new Date().toLocaleDateString('en-CA')
+  const today = todayET()
   const [ty, tm, td] = today.split('-').map(Number)
   const [dy, dm, dd] = dateStr.slice(0, 10).split('-').map(Number)
   const diff = Math.round((Date.UTC(dy, dm-1, dd) - Date.UTC(ty, tm-1, td)) / 86400_000)
@@ -25,7 +26,7 @@ export default async function Home() {
   const canvas: any[] = calData?.canvas ?? []
   const gcal: any[]   = calData?.google ?? []
 
-  const todayStr = new Date().toLocaleDateString('en-CA')
+  const todayStr = todayET()
 
   const nextAssignment = canvas
     .filter(e => e.date.slice(0, 10) >= todayStr)

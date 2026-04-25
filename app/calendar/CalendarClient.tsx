@@ -19,9 +19,9 @@ function daysUntil(dateStr: string) {
   return `${diff}d`
 }
 
-function isWithin7Days(dateStr: string) {
+function isWithin14Days(dateStr: string) {
   const diff = dateDiff(dateStr)
-  return diff >= 0 && diff <= 7
+  return diff >= 0 && diff <= 14
 }
 
 function Row({ children }: { children: React.ReactNode }) {
@@ -61,10 +61,10 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
     })
   }
 
-  const allCanvas   = canvas.filter(e => e.date && dateDiff(e.date) >= 0)
-  const gcal7       = gcal.filter(e => isWithin7Days(e.date))
-  const econ7       = econ.filter(e => isWithin7Days(e.date))
-  const earnings7   = earnings.filter(e => isWithin7Days(e.date))
+  const allCanvas    = canvas.filter(e => e.date && dateDiff(e.date) >= 0)
+  const gcal7        = gcal.filter(e => isWithin14Days(e.date))
+  const econ7        = econ.filter(e => isWithin14Days(e.date))
+  const earnings14   = earnings.filter(e => isWithin14Days(e.date))
 
   // Show all upcoming canvas, hide checked ones, but always show next 7 unchecked
   const visibleCanvas = allCanvas.filter(e => !hidden.has(`canvas-${e.title}-${e.date}`)).slice(0, 7)
@@ -153,42 +153,67 @@ export default function CalendarClient({ canvas, gcal, econ, earnings }: {
 
       {/* Row 3: Earnings — full width grid */}
       <div>
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings — Next 7 Days</p>
-        {earnings7.slice(0, 7).length > 0 ? (
+        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Earnings — Next 2 Weeks</p>
+        {earnings14.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {earnings7.slice(0, 7).map((e: any, i: number) => {
+            {earnings14.map((e: any, i: number) => {
               const dateLabel = (() => {
                 const [y, m, d] = e.date.slice(0, 10).split('-').map(Number)
                 return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
               })()
               const hourLabel = e.hour === 'bmo' ? 'Before Open' : e.hour === 'amc' ? 'After Close' : (e.hour?.toUpperCase() ?? '—')
-              const hourColor = e.hour === 'bmo' ? 'text-green' : e.hour === 'amc' ? 'text-yellow-400' : 'text-muted'
+              const hourColor = e.hour === 'bmo' ? 'text-green-400' : e.hour === 'amc' ? 'text-yellow-400' : 'text-muted'
               return (
                 <Card key={i}>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <span className="font-mono text-xl text-accent font-bold">{e.symbol}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xl text-accent font-bold">{e.symbol}</span>
+                        {e.sector && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-border text-muted">{e.sector}</span>
+                        )}
+                      </div>
                       {e.name && <p className="text-xs text-muted mt-0.5">{e.name}</p>}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <p className="text-sm font-mono text-white">{daysUntil(e.date)}</p>
                       <p className="text-xs text-dim">{dateLabel}</p>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium ${hourColor}`}>{hourLabel}</span>
-                      <span className="text-xs text-border">·</span>
-                      <span className="text-xs text-muted">EPS est: <span className="text-white">{e.epsEstimate ?? '—'}</span></span>
-                    </div>
-                    {e.summary && <p className="text-xs text-dim leading-relaxed">{e.summary}</p>}
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`text-xs font-medium ${hourColor}`}>{hourLabel}</span>
+                    <span className="text-xs text-border">·</span>
+                    <span className="text-xs text-muted">EPS est: <span className="text-white font-mono">{e.epsEstimate ?? '—'}</span></span>
                   </div>
+
+                  {e.why_it_matters && (
+                    <p className="text-xs text-dim leading-relaxed mb-3 border-l-2 border-accent/30 pl-2">{e.why_it_matters}</p>
+                  )}
+
+                  {e.what_to_watch && e.what_to_watch.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs text-muted uppercase tracking-widest font-mono mb-1.5">Watch</p>
+                      <ul className="space-y-1">
+                        {e.what_to_watch.map((item: string, j: number) => (
+                          <li key={j} className="text-xs text-dim flex gap-2">
+                            <span className="text-accent flex-shrink-0">›</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {e.summary && (
+                    <p className="text-xs text-white/60 italic leading-relaxed border-t border-border pt-2">{e.summary}</p>
+                  )}
                 </Card>
               )
             })}
           </div>
         ) : (
-          <Card><p className="text-sm text-dim py-2">No earnings this week.</p></Card>
+          <Card><p className="text-sm text-dim py-2">No earnings in the next 2 weeks.</p></Card>
         )}
       </div>
 
