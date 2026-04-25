@@ -121,18 +121,25 @@ async function fetchInstagram() {
   const avgComments = posts.length > 0 ? Math.round(posts.reduce((s, p) => s + (p.comments ?? 0), 0) / posts.length) : 0
   const avgLikes = posts.length > 0 ? Math.round(posts.reduce((s, p) => s + (p.likes ?? 0), 0) / posts.length) : 0
 
-  // Account-level insights (last 28 days)
+  // Account-level insights (last 30 days)
   let accountInsights = {}
   try {
+    const since = Math.floor(Date.now() / 1000) - 30 * 86400
+    const until = Math.floor(Date.now() / 1000)
     const insightRes = await fetch(
-      `${base}/${IG_ACCOUNT_ID}/insights?metric=impressions,reach,profile_views,website_clicks,follower_count&period=day&since=${Math.floor(Date.now() / 1000) - 28 * 86400}&until=${Math.floor(Date.now() / 1000)}&access_token=${IG_TOKEN}`
+      `${base}/${IG_ACCOUNT_ID}/insights?metric=impressions,reach,profile_views&period=day&since=${since}&until=${until}&access_token=${IG_TOKEN}`
     )
     const insightData = await insightRes.json()
+    if (insightData.error) {
+      console.warn('IG insights error:', insightData.error.message)
+    }
     for (const metric of insightData.data ?? []) {
       const total = metric.values?.reduce((s, v) => s + v.value, 0) ?? 0
       accountInsights[metric.name] = total
     }
-  } catch {}
+  } catch (e) {
+    console.warn('IG insights failed:', e.message)
+  }
 
   return {
     username: profile.username,

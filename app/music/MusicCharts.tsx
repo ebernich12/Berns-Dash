@@ -105,7 +105,7 @@ export default function MusicCharts({ history, yt, ig }: Props) {
                 <XAxis dataKey="date" tick={{ fill: '#8e8e93', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left" domain={['auto', 'auto']} tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
                 <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: any) => [fmt(v)]} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any) => [fmt(v)]} />
                 <Legend wrapperStyle={{ fontSize: '11px' }} />
                 <Line yAxisId="right" type="monotone" dataKey="YouTube" stroke={YT_COLOR} strokeWidth={2} dot={false} />
                 <Line yAxisId="left" type="monotone" dataKey="Instagram" stroke={IG_COLOR} strokeWidth={2} dot={false} />
@@ -126,7 +126,7 @@ export default function MusicCharts({ history, yt, ig }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
             <XAxis dataKey="platform" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: any, _: any, props: any) => [fmt(v), props.payload.label]} />
+            <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any, _: any, props: any) => [fmt(v), props.payload.label]} />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {reachBar.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />

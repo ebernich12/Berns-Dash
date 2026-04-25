@@ -121,7 +121,7 @@ export default async function MusicPage() {
         <SectionHeader label="Instagram" color={IG} />
         <div className="grid grid-cols-3 gap-3 mb-4">
           <StatCard label="Followers" value={fmt(ig?.followers)} color={IG} />
-          <StatCard label="IG Impressions (28 days)" value={fmt(ig?.account_insights?.impressions)} color={IG} />
+          <StatCard label="Impressions (30d)" value={fmt(ig?.account_insights?.impressions ?? ig?.account_insights?.reach)} color={IG} />
           <StatCard label="Avg Comments / Post" value={fmt(ig?.avg_comments_per_post)} color={IG} />
         </div>
         {igPosts.length > 0 && (
