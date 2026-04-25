@@ -49,7 +49,7 @@ export default async function AnalyticsPage() {
       {/* Row 1: Total views / reach */}
       <div className="grid grid-cols-3 gap-3 mb-3">
         <StatCard label="YT Total Views" value={fmt(yt?.total_views)} color={YT} />
-        <StatCard label="IG Total Reach (30 days)" value={fmt(ig?.total_reach_recent)} color={IG} />
+        <StatCard label="IG Total Reach (30 days)" value={fmt(ig?.account_insights?.reach ?? ig?.total_reach_recent)} color={IG} />
         <StatCard label="TikTok Total Views" value="—" color={TT} />
       </div>
 
@@ -77,7 +77,7 @@ export default async function AnalyticsPage() {
       {/* Account-level Instagram insights */}
       {Object.keys(igInsights).length > 0 && (
         <div className="mb-6">
-          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Instagram Account Insights (28 days)</p>
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Instagram Account Insights (30 days)</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(igInsights).map(([key, val]: any) => (
               <div key={key} className="bg-card border border-border rounded-xl p-4">

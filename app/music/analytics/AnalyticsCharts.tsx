@@ -60,7 +60,7 @@ export default function AnalyticsCharts({ history, yt, ig }: Props) {
 
   const reachData = sorted.map(r => ({
     date: r.date.slice(5),
-    'IG Impressions': r.ig_impressions ?? r.ig_total_reach,
+    'IG Reach': r.ig_impressions ?? r.ig_total_reach,
     'YT Total Views': r.yt_total_views,
     TikTok: r.tiktok_avg_views,
   }))
@@ -147,7 +147,7 @@ export default function AnalyticsCharts({ history, yt, ig }: Props) {
               <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
               <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any) => [fmt(v)]} />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
-              <Line yAxisId="right" type="monotone" dataKey="IG Impressions" stroke={IG_COLOR} strokeWidth={2} dot={false} />
+              <Line yAxisId="right" type="monotone" dataKey="IG Reach" stroke={IG_COLOR} strokeWidth={2} dot={false} />
               <Line yAxisId="left" type="monotone" dataKey="YT Total Views" stroke={YT_COLOR} strokeWidth={2} dot={false} />
               <Line yAxisId="left" type="monotone" dataKey="TikTok" stroke={TT_COLOR} strokeWidth={2} dot={false} />
             </LineChart>
