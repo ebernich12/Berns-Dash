@@ -89,7 +89,7 @@ async function fetchInstagram() {
   const profile = await profileRes.json()
 
   const mediaRes = await fetch(
-    `${base}/${IG_ACCOUNT_ID}/media?fields=id,caption,media_type,timestamp,like_count,comments_count,permalink,thumbnail_url,media_url,insights.metric(impressions,reach,saved,video_views,plays,shares)&limit=20&access_token=${IG_TOKEN}`
+    `${base}/${IG_ACCOUNT_ID}/media?fields=id,caption,media_type,timestamp,like_count,comments_count,permalink,thumbnail_url,media_url,insights.metric(reach,saved,video_views,plays,shares)&limit=20&access_token=${IG_TOKEN}`
   )
   const mediaData = await mediaRes.json()
 
@@ -223,7 +223,7 @@ async function saveHistory(ytData, igData) {
       ytData?.avg_views_per_video ?? null,
       igData?.followers ?? null,
       igData?.total_reach_recent ?? null,
-      igData?.account_insights?.impressions ?? null,
+      igData?.account_insights?.reach ?? null,
     ])
 
     const histRes = await pool.query(`

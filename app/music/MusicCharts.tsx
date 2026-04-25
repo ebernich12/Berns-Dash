@@ -10,6 +10,8 @@ interface HistoryRow {
   yt_subscribers: number | null
   yt_total_views: number | null
   ig_followers: number | null
+  ig_total_reach: number | null
+  ig_impressions: number | null
   tiktok_followers: number | null
 }
 
@@ -57,9 +59,16 @@ export default function MusicCharts({ history, yt, ig }: Props) {
 
   const reachBar = [
     { platform: 'YouTube', value: yt?.total_views ?? 0, color: YT_COLOR, label: 'Total Views' },
-    { platform: 'Instagram', value: ig?.account_insights?.impressions ?? ig?.total_reach_recent ?? 0, color: IG_COLOR, label: 'Impressions (28d)' },
+    { platform: 'Instagram', value: ig?.account_insights?.reach ?? ig?.total_reach_recent ?? 0, color: IG_COLOR, label: 'Reach (30d)' },
     { platform: 'TikTok', value: 0, color: TT_COLOR, label: 'Total Views' },
   ]
+
+  const reachData = sorted
+    .filter(r => r.ig_impressions != null || r.ig_total_reach != null)
+    .map(r => ({
+      date: r.date.slice(5),
+      'IG Reach (30d)': r.ig_impressions ?? r.ig_total_reach,
+    }))
 
   return (
     <div className="mb-6">
@@ -117,6 +126,22 @@ export default function MusicCharts({ history, yt, ig }: Props) {
           )}
         </div>
       </div>
+
+      {/* IG Reach history */}
+      {reachData.length > 1 && (
+        <div className="bg-card border border-border rounded-xl p-4 mb-4">
+          <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Instagram Reach History (30d window)</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={reachData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
+              <XAxis dataKey="date" tick={{ fill: '#8e8e93', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any) => [fmt(v)]} />
+              <Line type="monotone" dataKey="IG Reach (30d)" stroke={IG_COLOR} strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Reach / Views by platform */}
       <div className="bg-card border border-border rounded-xl p-4">
