@@ -26,6 +26,7 @@ const BLS_KEY     = env.BLS_KEY
 const BEA_KEY     = env.BEA_KEY
 const EIA_KEY     = env.EIA_KEY
 const GROQ_KEY    = env.GROQ_KEY || env.GROQ_API_KEY
+const GROQ_KEY_2  = env.GROQ_KEY_2
 const INGEST_URL  = env.INGEST_URL || 'https://bernsapp.com/api/ingest'
 const CRON_SECRET = env.CRON_SECRET
 const DB_URL      = env.DATABASE_URL
@@ -140,8 +141,40 @@ async function fetchEIAInventories() {
   return results
 }
 
-async function groqAnalysis(indicators, jobs, gdp) {
-  const summary = [
+async function groqCall(key, messages, max_tokens) {
+  const res  = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens, temperature: 0.3, messages }),
+  })
+  const json = await res.json()
+  if (!res.ok || json.error) console.error('[MacroAgent] Groq error:', JSON.stringify(json).slice(0, 200))
+  return json.choices?.[0]?.message?.content ?? ''
+}
+
+async function groq(messages, max_tokens = 512) {
+  const result = await groqCall(GROQ_KEY, messages, max_tokens)
+  if (!result && GROQ_KEY_2) {
+    console.log('[MacroAgent] primary key empty, retrying with key 2')
+    return groqCall(GROQ_KEY_2, messages, max_tokens)
+  }
+  return result
+}
+
+async function getNewsSnapshots() {
+  const pool = new pg.Pool({ connectionString: DB_URL })
+  try {
+    const res = await pool.query(`SELECT agent, data FROM agent_snapshots WHERE agent IN ('news-markets','news-world','news-tech')`)
+    const out = {}
+    for (const row of res.rows) out[row.agent] = row.data
+    return out
+  } finally {
+    await pool.end()
+  }
+}
+
+async function groqAnalysis(indicators, jobs, gdp, news) {
+  const indicatorLines = [
     `Fed Funds: ${indicators.fed_funds?.value?.toFixed(2)}%`,
     `10Y Treasury: ${indicators.dgs10?.value?.toFixed(2)}%`,
     `2Y Treasury: ${indicators.dgs2?.value?.toFixed(2)}%`,
@@ -154,18 +187,28 @@ async function groqAnalysis(indicators, jobs, gdp) {
     gdp?.value ? `GDP: ${gdp.value.toFixed(1)}% (${gdp.period})` : '',
   ].filter(Boolean).join('\n')
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile', max_tokens: 300, temperature: 0.3,
-      messages: [
-        { role: 'system', content: 'You are a macroeconomic analyst. Write a 150-word directional macro brief. Lead with a clear conviction call (HAWKISH/DOVISH/STAGFLATION/GOLDILOCKS/etc). Be quantitative. Do not hedge. Take a position on where rates, growth, and inflation are heading.' },
-        { role: 'user', content: `Current macro data:\n${summary}\n\nWrite the brief.` },
-      ],
-    }),
-  })
-  return (await res.json()).choices?.[0]?.message?.content ?? ''
+  const sentimentLines = [
+    news?.['news-markets']?.market_sentiment ? `Markets sentiment: ${news['news-markets'].market_sentiment.label} (${news['news-markets'].market_sentiment.score})` : '',
+    news?.['news-world']?.world_sentiment    ? `World sentiment: ${news['news-world'].world_sentiment.label} (${news['news-world'].world_sentiment.score})`       : '',
+    news?.['news-tech']?.tech_sentiment      ? `Tech sentiment: ${news['news-tech'].tech_sentiment.label} (${news['news-tech'].tech_sentiment.score})`             : '',
+  ].filter(Boolean).join('\n')
+
+  const topHeadlines = [
+    ...(news?.['news-markets']?.top10 ?? []).slice(0, 3),
+    ...(news?.['news-world']?.top10   ?? []).slice(0, 3),
+    ...(news?.['news-tech']?.top10    ?? []).slice(0, 2),
+  ].map(h => `- "${h.headline}" (${h.source}, score=${h.sentiment})`).join('\n')
+
+  const userContent = [
+    `Macro indicators:\n${indicatorLines}`,
+    sentimentLines ? `\nNews sentiment:\n${sentimentLines}` : '',
+    topHeadlines   ? `\nTop headlines:\n${topHeadlines}`    : '',
+  ].filter(Boolean).join('\n')
+
+  return groq([
+    { role: 'system', content: 'You are a macroeconomic strategist at a hedge fund. Write a 200-word directional macro brief that connects the hard data to current news flow. Lead with a clear regime call (HAWKISH/DOVISH/STAGFLATION/GOLDILOCKS/RISK-OFF/etc). Cite specific numbers from the indicators. Explain what the top news stories imply for the macro outlook — rates, growth, inflation. Every sentence must contain a specific number, ticker, or causal mechanism. No hedging. Take a position.' },
+    { role: 'user', content: userContent },
+  ], 400)
 }
 
 async function saveHistory(indicators) {
@@ -260,8 +303,10 @@ async function run() {
   console.log(`[MacroAgent] indicators: ${Object.keys(indicators).join(', ')}`)
   console.log(`[MacroAgent] history: rates=${ratesHistory.length}pts, cpi=${cpiHistory.length}pts, unemployment=${unrateHistory.length}pts, gdp=${gdpHistory.length}pts`)
 
+  const news = await getNewsSnapshots().catch(() => ({}))
+
   const [analysis, dbHistory] = await Promise.allSettled([
-    groqAnalysis(indicators, jobs, gdp),
+    groqAnalysis(indicators, jobs, gdp, news),
     saveHistory(indicators),
   ])
 
