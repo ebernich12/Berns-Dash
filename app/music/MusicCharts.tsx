@@ -1,8 +1,8 @@
 'use client'
 
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, YAxisProps,
+  LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 
 interface HistoryRow {
@@ -56,12 +56,6 @@ export default function MusicCharts({ history, yt, ig }: Props) {
   ].filter(d => d.value > 0)
 
   const totalFollowers = pieData.reduce((s, d) => s + d.value, 0)
-
-  const reachBar = [
-    { platform: 'YouTube', value: yt?.total_views ?? 0, color: YT_COLOR, label: 'Total Views' },
-    { platform: 'Instagram', value: ig?.account_insights?.reach ?? ig?.total_reach_recent ?? 0, color: IG_COLOR, label: 'Reach (30d)' },
-    { platform: 'TikTok', value: 0, color: TT_COLOR, label: 'Total Views' },
-  ]
 
   const reachData = sorted
     .filter(r => r.ig_impressions != null || r.ig_total_reach != null)
@@ -143,23 +137,6 @@ export default function MusicCharts({ history, yt, ig }: Props) {
         </div>
       )}
 
-      {/* Reach / Views by platform */}
-      <div className="bg-card border border-border rounded-xl p-4">
-        <p className="text-xs text-muted font-mono uppercase tracking-widest mb-4">Total Reach + Views by Platform</p>
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={reachBar} barCategoryGap="30%">
-            <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
-            <XAxis dataKey="platform" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tickFormatter={fmt} tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} width={45} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: '#f5f5f7' }} itemStyle={{ color: '#f5f5f7' }} formatter={(v: any, _: any, props: any) => [fmt(v), props.payload.label]} />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {reachBar.map((entry, i) => (
-                <Cell key={i} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
     </div>
   )
 }
