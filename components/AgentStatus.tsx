@@ -2,8 +2,9 @@ import { getAgentStatuses } from '@/lib/db'
 
 const AGENTS = [
   { key: 'calendar', label: 'Cally'   },
-  { key: 'trading',  label: 'Trader'  },
+  { key: 'news',     label: 'News'    },
   { key: 'finance',  label: 'Finance' },
+  { key: 'trading',  label: 'Trader'  },
   { key: 'music',    label: 'Music'   },
 ]
 
