@@ -126,20 +126,30 @@ async function fetchInstagram() {
   const since = Math.floor(Date.now() / 1000) - 30 * 86400
   const until = Math.floor(Date.now() / 1000)
 
+  // reach: period=day, no metric_type
   try {
     const res = await fetch(
-      `${base}/${IG_ACCOUNT_ID}/insights?metric=reach,views,total_interactions,profile_views&period=day&since=${since}&until=${until}&access_token=${IG_TOKEN}`
+      `${base}/${IG_ACCOUNT_ID}/insights?metric=reach&period=day&since=${since}&until=${until}&access_token=${IG_TOKEN}`
     )
     const d = await res.json()
-    if (d.error) {
-      console.warn('IG insights error:', d.error.message)
-    } else {
+    if (d.error) console.warn('IG reach error:', d.error.message)
+    else accountInsights.reach = d.data?.[0]?.values?.reduce((s, v) => s + (v.value ?? 0), 0) ?? 0
+  } catch (e) { console.warn('IG reach failed:', e.message) }
+
+  // views/interactions/profile_views: period=day + metric_type=total_value
+  try {
+    const res = await fetch(
+      `${base}/${IG_ACCOUNT_ID}/insights?metric=views,total_interactions,profile_views&period=day&metric_type=total_value&since=${since}&until=${until}&access_token=${IG_TOKEN}`
+    )
+    const d = await res.json()
+    if (d.error) console.warn('IG views error:', d.error.message)
+    else {
       for (const metric of d.data ?? []) {
         accountInsights[metric.name] = metric.values?.reduce((s, v) => s + (v.value ?? 0), 0) ?? 0
       }
-      console.log('IG insights:', JSON.stringify(accountInsights))
     }
-  } catch (e) { console.warn('IG insights failed:', e.message) }
+    console.log('IG insights:', JSON.stringify(accountInsights))
+  } catch (e) { console.warn('IG views failed:', e.message) }
 
   return {
     username: profile.username,
