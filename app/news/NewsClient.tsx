@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts'
+import { LineChart, Line, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -225,13 +225,14 @@ const CHART_COLORS = {
 function RatesChart({ data }: { data: any[] }) {
   if (!data?.length) return <p className="text-sm text-muted">No history yet.</p>
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={240}>
+      <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
         <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(5)} interval={Math.floor(data.length / 6)} />
-        <YAxis tick={{ fill: '#636366', fontSize: 10 }} />
-        <Tooltip {...TOOLTIP} />
+        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} width={48} domain={['auto', 'auto']} />
+        <Tooltip {...TOOLTIP} formatter={(v: any, name: any) => [`${v}%`, name]} />
         <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
+        <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
         {Object.entries(CHART_COLORS).map(([key, color]) => (
           <Line key={key} type="monotone" dataKey={key} stroke={color} dot={false} strokeWidth={1.5} name={key.replace(/_/g, ' ').toUpperCase()} connectNulls />
         ))}
@@ -241,20 +242,39 @@ function RatesChart({ data }: { data: any[] }) {
 }
 
 function InflationChart({ cpi, pce }: { cpi: any[]; pce: any[] }) {
+  const cpiSorted = [...cpi].sort((a, b) => a.date.localeCompare(b.date))
+  const pceSorted = [...pce].sort((a, b) => a.date.localeCompare(b.date))
+
+  function yoy(series: { date: string; value: number }[]) {
+    return series.map((d, i) => {
+      const yearAgo = new Date(d.date)
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1)
+      const target = yearAgo.toISOString().slice(0, 7)
+      const prior  = series.find(p => p.date.slice(0, 7) === target)
+      return { date: d.date, yoy: prior ? +((d.value / prior.value - 1) * 100).toFixed(2) : null }
+    }).filter(d => d.yoy !== null)
+  }
+
+  const cpiYoY = yoy(cpiSorted)
+  const pceYoY = yoy(pceSorted)
+
   const merged: Record<string, any> = {}
-  for (const p of cpi) merged[p.date] = { ...merged[p.date], date: p.date, cpi: p.value }
-  for (const p of pce) merged[p.date] = { ...merged[p.date], date: p.date, pce: p.value }
-  const data = Object.values(merged).sort((a, b) => a.date.localeCompare(b.date))
+  for (const p of cpiYoY) merged[p.date] = { ...merged[p.date], date: p.date, cpi: p.yoy }
+  for (const p of pceYoY) merged[p.date] = { ...merged[p.date], date: p.date, pce: p.yoy }
+  const data = Object.values(merged).sort((a: any, b: any) => a.date.localeCompare(b.date))
+
   if (!data.length) return <p className="text-sm text-muted">No history yet.</p>
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={220}>
+      <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
         <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(data.length / 8)} />
-        <YAxis tick={{ fill: '#636366', fontSize: 10 }} />
-        <Tooltip {...TOOLTIP} />
-        <Line type="monotone" dataKey="cpi" stroke="#ff9f0a" dot={false} strokeWidth={1.5} name="CPI" connectNulls />
-        <Line type="monotone" dataKey="pce" stroke="#0a84ff" dot={false} strokeWidth={1.5} name="PCE" connectNulls />
+        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v.toFixed(1)}%`} width={48} domain={['auto', 'auto']} />
+        <Tooltip {...TOOLTIP} formatter={(v: any, name: any) => [`${(+v).toFixed(2)}%`, name]} />
+        <ReferenceLine y={2} stroke="#636366" strokeDasharray="4 2" label={{ value: '2% target', fill: '#636366', fontSize: 9, position: 'insideTopLeft' }} />
+        <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
+        <Line type="monotone" dataKey="cpi" stroke="#ff9f0a" dot={false} strokeWidth={1.5} name="CPI YoY" connectNulls />
+        <Line type="monotone" dataKey="pce" stroke="#0a84ff" dot={false} strokeWidth={1.5} name="PCE YoY" connectNulls />
       </LineChart>
     </ResponsiveContainer>
   )
@@ -262,12 +282,15 @@ function InflationChart({ cpi, pce }: { cpi: any[]; pce: any[] }) {
 
 function UnemploymentChart({ data }: { data: any[] }) {
   if (!data?.length) return <p className="text-sm text-muted">No history yet.</p>
+  const vals = data.map(d => d.value).filter(Boolean)
+  const min  = Math.floor(Math.min(...vals) * 10) / 10
+  const max  = Math.ceil(Math.max(...vals)  * 10) / 10
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={200}>
+      <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
         <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(data.length / 8)} />
-        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} />
+        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} width={48} domain={[min - 0.2, max + 0.2]} />
         <Tooltip {...TOOLTIP} formatter={(v: any) => [`${v}%`, 'Unemployment']} />
         <Line type="monotone" dataKey="value" stroke="#ff453a" dot={false} strokeWidth={1.5} name="Unemployment" connectNulls />
       </LineChart>
@@ -281,12 +304,15 @@ function GdpChart({ data }: { data: any[] }) {
     date: d.date,
     change: i > 0 ? +(((d.value - data[i - 1].value) / data[i - 1].value) * 100).toFixed(2) : null,
   })).filter(d => d.change !== null)
+  const vals = changes.map(d => d.change as number)
+  const min  = Math.floor(Math.min(...vals) - 0.5)
+  const max  = Math.ceil(Math.max(...vals)  + 0.5)
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <BarChart data={changes} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={changes} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
         <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(changes.length / 8)} />
-        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} />
+        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} width={48} domain={[min, max]} />
         <Tooltip {...TOOLTIP} formatter={(v: any) => [`${v}%`, 'GDP QoQ']} />
         <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
         <Bar dataKey="change" radius={[2, 2, 0, 0]}>
@@ -307,13 +333,14 @@ function SentimentHistoryChart({ data }: { data: any[] }) {
   })
   const every = Math.max(1, Math.floor(formatted.length / 10))
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <LineChart data={formatted} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height={240}>
+      <LineChart data={formatted} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
         <XAxis dataKey="label" tick={{ fill: '#636366', fontSize: 10 }} interval={every} />
-        <YAxis domain={[-1, 1]} tick={{ fill: '#636366', fontSize: 10 }} />
-        <Tooltip {...TOOLTIP} />
+        <YAxis domain={[-1, 1]} tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => v.toFixed(1)} width={40} />
+        <Tooltip {...TOOLTIP} formatter={(v: any, name: any) => [Number(v).toFixed(3), name]} />
         <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
+        <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
         <Line type="monotone" dataKey="markets" stroke="#0a84ff" dot={false} strokeWidth={1.5} name="Markets" connectNulls />
         <Line type="monotone" dataKey="world"   stroke="#ff453a" dot={false} strokeWidth={1.5} name="World"   connectNulls />
         <Line type="monotone" dataKey="tech"    stroke="#30d158" dot={false} strokeWidth={1.5} name="Tech"    connectNulls />
