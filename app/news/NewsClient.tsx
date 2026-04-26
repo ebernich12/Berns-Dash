@@ -436,6 +436,10 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
           {analysis?.global_conviction && (
             <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
           )}
+
+          {/* Single combined brief */}
+          {analysis?.brief && <BriefCard text={analysis.brief} />}
+
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top Stories</p>
             <div className="bg-card border border-border rounded-xl p-4">
@@ -541,22 +545,6 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Rates History · 120 Days</p>
               <div className="bg-card border border-border rounded-xl p-4">
                 <RatesChart data={macro.history.rates} />
-              </div>
-            </div>
-          )}
-          {(macro?.history?.cpi?.length > 0 || macro?.history?.pce?.length > 0) && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Inflation History · 5 Years</p>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <InflationChart cpi={macro.history.cpi ?? []} pce={macro.history.pce ?? []} />
-              </div>
-            </div>
-          )}
-          {macro?.history?.unemployment?.length > 0 && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Unemployment Rate · 5 Years</p>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <UnemploymentChart data={macro.history.unemployment} />
               </div>
             </div>
           )}
