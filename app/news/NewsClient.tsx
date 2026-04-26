@@ -177,21 +177,20 @@ function SummaryCard({ data }: { data: any }) {
 function BriefCard({ text }: { text: string }) {
   if (!text) return null
   const sections = [
-    { key: 'CONVICTION', color: '#f5f5f7' },
-    { key: 'MARKET',     color: '#f5f5f7' },
-    { key: 'MACRO',      color: '#f5f5f7' },
-    { key: 'KEY RISK',   color: '#ff9f0a' },
-    { key: 'POSITIONING', color: '#0a84ff' },
+    { key: 'CONVICTION', border: '#636366', bg: 'rgba(99,99,102,0.08)' },
+    { key: 'CATALYST',   border: '#bf5af2', bg: 'rgba(191,90,242,0.08)' },
+    { key: 'MARKET',     border: '#0a84ff', bg: 'rgba(10,132,255,0.06)' },
+    { key: 'MACRO',      border: '#30d158', bg: 'rgba(48,209,88,0.06)'  },
+    { key: 'KEY RISK',   border: '#ff9f0a', bg: 'rgba(255,159,10,0.08)' },
+    { key: 'POSITIONING',border: '#5ac8fa', bg: 'rgba(90,200,250,0.06)' },
   ]
-  const parsed: { label: string; text: string; color: string }[] = []
-  let remaining = text
+  const parsed: { label: string; text: string; border: string; bg: string }[] = []
   for (let i = 0; i < sections.length; i++) {
     const s = sections[i]
-    const pattern = new RegExp(`${s.key}:([\\s\\S]*?)(?=${sections.slice(i + 1).map(n => n.key + ':').join('|')}|$)`, 'i')
-    const match = remaining.match(pattern)
-    if (match) {
-      parsed.push({ label: s.key, text: match[1].trim(), color: s.color })
-    }
+    const nextKeys = sections.slice(i + 1).map(n => n.key + ':').join('|')
+    const pattern  = new RegExp(`${s.key}:\\s*([\\s\\S]*?)(?=${nextKeys}|$)`, 'i')
+    const match    = text.match(pattern)
+    if (match) parsed.push({ label: s.key, text: match[1].trim(), border: s.border, bg: s.bg })
   }
   if (!parsed.length) {
     return (
@@ -201,15 +200,28 @@ function BriefCard({ text }: { text: string }) {
       </div>
     )
   }
+  const conviction = parsed.find(s => s.label === 'CONVICTION')
+  const convColor  = conviction ? (
+    conviction.text.match(/BULL|RISK-ON/i) ? '#30d158' :
+    conviction.text.match(/BEAR|RISK-OFF/i) ? '#ff453a' :
+    conviction.text.match(/STAGFLATION/i) ? '#ff9f0a' : '#f5f5f7'
+  ) : '#f5f5f7'
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-      <p className="text-xs text-muted font-mono uppercase tracking-widest">Market Brief · Groq</p>
-      {parsed.map((s, i) => (
-        <div key={i}>
-          <p className="text-xs font-mono uppercase tracking-widest mb-1" style={{ color: '#636366' }}>{s.label}</p>
-          <p className="text-sm leading-relaxed" style={{ color: s.label === 'CONVICTION' ? (s.text.includes('BULL') || s.text.includes('RISK-ON') ? '#30d158' : s.text.includes('BEAR') || s.text.includes('RISK-OFF') ? '#ff453a' : s.text.includes('STAGFLATION') ? '#ff9f0a' : '#f5f5f7') : s.color }}>{s.text}</p>
-        </div>
-      ))}
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-5 pt-4 pb-3 border-b border-border flex items-center justify-between">
+        <p className="text-xs text-muted font-mono uppercase tracking-widest">Market Brief · Groq</p>
+        {conviction && <p className="text-xs font-bold font-mono" style={{ color: convColor }}>{conviction.text.split('—')[0].trim()}</p>}
+      </div>
+      <div className="divide-y divide-border">
+        {parsed.map((s, i) => (
+          <div key={i} className="flex gap-0" style={{ borderLeft: `3px solid ${s.border}`, background: s.bg }}>
+            <div className="flex-1 px-4 py-3">
+              <p className="text-xs font-mono uppercase tracking-widest mb-1" style={{ color: s.border }}>{s.label}</p>
+              <p className="text-sm text-white leading-relaxed">{s.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -307,30 +319,66 @@ function GdpChart({ data }: { data: any[] }) {
   const vals = changes.map(d => d.change as number)
   const min  = Math.floor(Math.min(...vals) - 0.5)
   const max  = Math.ceil(Math.max(...vals)  + 0.5)
+  const recent = changes[changes.length - 1]
+  const prev   = changes[changes.length - 2]
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={changes} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
-        <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(changes.length / 8)} />
-        <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} width={48} domain={[min, max]} />
-        <Tooltip {...TOOLTIP} formatter={(v: any) => [`${v}%`, 'GDP QoQ']} />
-        <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
-        <Bar dataKey="change" radius={[2, 2, 0, 0]}>
-          {changes.map((d, i) => (
-            <Cell key={i} fill={(d.change ?? 0) >= 0 ? '#30d158' : '#ff453a'} />
-          ))}
+    <div>
+      {recent && (
+        <div className="flex items-baseline gap-3 mb-4">
+          <p className="text-3xl font-mono font-bold" style={{ color: (recent.change ?? 0) >= 0 ? '#30d158' : '#ff453a' }}>
+            {(recent.change ?? 0) >= 0 ? '+' : ''}{recent.change}%
+          </p>
+          <p className="text-xs text-muted">QoQ · {recent.date.slice(0, 7)}</p>
+          {prev && (
+            <p className="text-xs text-muted ml-2">prev {prev.change}%</p>
+          )}
+        </div>
+      )}
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={changes} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" />
+          <XAxis dataKey="date" tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={d => d.slice(0, 7)} interval={Math.floor(changes.length / 8)} />
+          <YAxis tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => `${v}%`} width={48} domain={[min, max]} />
+          <Tooltip {...TOOLTIP} formatter={(v: any) => [`${v}%`, 'GDP QoQ']} />
+          <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
+          <Bar dataKey="change" radius={[2, 2, 0, 0]}>
+            {changes.map((d, i) => (
+              <Cell key={i} fill={(d.change ?? 0) >= 0 ? '#30d158' : '#ff453a'} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function SectorSentimentChart({ sectors }: { sectors: any }) {
+  if (!sectors) return <p className="text-sm text-muted">No sector data.</p>
+  const data = Object.entries(sectors)
+    .map(([name, d]: [string, any]) => ({ name: (d as any).etf, fullName: name, score: (d as any).convictionScore }))
+    .sort((a, b) => b.score - a.score)
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#2c2c2e" horizontal={false} />
+        <XAxis type="number" domain={[-1, 1]} tick={{ fill: '#636366', fontSize: 10 }} tickFormatter={v => v.toFixed(1)} />
+        <YAxis type="category" dataKey="name" tick={{ fill: '#8e8e93', fontSize: 11 }} width={36} axisLine={false} tickLine={false} />
+        <Tooltip {...TOOLTIP} formatter={(v: any, _, props: any) => [Number(v).toFixed(3), props.payload.fullName]} />
+        <ReferenceLine x={0} stroke="#3a3a3c" />
+        <Bar dataKey="score" radius={[0, 4, 4, 0]}>
+          {data.map((d, i) => <Cell key={i} fill={sentimentColor(d.score)} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   )
 }
 
-function SentimentHistoryChart({ data }: { data: any[] }) {
+function GlobalSentimentChart({ data }: { data: any[] }) {
   if (!data?.length) return <p className="text-sm text-muted">No history yet — runs every 2 hours.</p>
-  const formatted = data.map(d => {
-    const dt = new Date(d.date)
-    return { ...d, label: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
-  })
+  const formatted = data.map(d => ({
+    ...d,
+    label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+  }))
   const every = Math.max(1, Math.floor(formatted.length / 10))
   return (
     <ResponsiveContainer width="100%" height={240}>
@@ -341,10 +389,10 @@ function SentimentHistoryChart({ data }: { data: any[] }) {
         <Tooltip {...TOOLTIP} formatter={(v: any, name: any) => [Number(v).toFixed(3), name]} />
         <ReferenceLine y={0} stroke="#3a3a3c" strokeDasharray="3 3" />
         <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
-        <Line type="monotone" dataKey="markets" stroke="#0a84ff" dot={false} strokeWidth={1.5} name="Markets" connectNulls />
-        <Line type="monotone" dataKey="world"   stroke="#ff453a" dot={false} strokeWidth={1.5} name="World"   connectNulls />
-        <Line type="monotone" dataKey="tech"    stroke="#30d158" dot={false} strokeWidth={1.5} name="Tech"    connectNulls />
-        <Line type="monotone" dataKey="global"  stroke="#f5f5f7" dot={false} strokeWidth={2}   name="Global"  connectNulls strokeDasharray="4 2" />
+        <Line type="monotone" dataKey="markets" stroke="#0a84ff" dot={false} strokeWidth={2} name="US Markets" connectNulls />
+        <Line type="monotone" dataKey="world"   stroke="#ff9f0a" dot={false} strokeWidth={2} name="World / Intl" connectNulls />
+        <Line type="monotone" dataKey="tech"    stroke="#30d158" dot={false} strokeWidth={1.5} name="Tech" connectNulls />
+        <Line type="monotone" dataKey="global"  stroke="#f5f5f7" dot={false} strokeWidth={2} name="Global" connectNulls strokeDasharray="4 2" />
       </LineChart>
     </ResponsiveContainer>
   )
@@ -385,58 +433,9 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       {/* ── HOME ──────────────────────────────────────────────────── */}
       {tab === 'home' && (
         <div className="space-y-6">
-          {/* Global conviction */}
           {analysis?.global_conviction && (
             <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
           )}
-
-          {/* Macro strip */}
-          {macro?.indicators && (
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-              {macro.indicators.fed_funds   && <MacroStripCard label="Fed Funds"   value={macro.indicators.fed_funds.value}   change={macro.indicators.fed_funds.change}   unit="%" />}
-              {macro.indicators.dgs10       && <MacroStripCard label="10Y"         value={macro.indicators.dgs10.value}       change={macro.indicators.dgs10.change}       unit="%" />}
-              {macro.indicators.cpi         && <MacroStripCard label="Inflation"   value={macro.indicators.cpi.value}         change={macro.indicators.cpi.change}            />}
-              {macro.indicators.unemployment && <MacroStripCard label="Unemploymt"  value={macro.indicators.unemployment.value} change={macro.indicators.unemployment.change} unit="%" />}
-              {macro.indicators.gdp         && <MacroStripCard label="GDP"         value={macro.indicators.gdp.value}         change={macro.indicators.gdp.change}            />}
-            </div>
-          )}
-
-          {/* Market / World / Tech banners */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {markets?.market_sentiment && <ConvictionBanner label="Markets" score={markets.market_sentiment.score} sublabel="Business & financial" />}
-            {world?.world_sentiment    && <ConvictionBanner label="World"   score={world.world_sentiment.score}   sublabel="Geopolitical & general" />}
-            {tech?.tech_sentiment      && <ConvictionBanner label="Tech"    score={tech.tech_sentiment.score}     sublabel="Technology sector" />}
-          </div>
-
-          {/* Per-agent summaries */}
-          {(markets?.summary || world?.summary || tech?.summary) && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {markets?.summary && (
-                <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-                  <p className="text-xs text-muted font-mono uppercase tracking-widest">Markets</p>
-                  <p className="text-xs text-white leading-relaxed">{markets.summary.summary}</p>
-                  {markets.summary.outlook && <p className="text-xs font-medium" style={{ color: markets.summary.outlook.toLowerCase().includes('bull') ? '#30d158' : markets.summary.outlook.toLowerCase().includes('bear') ? '#ff453a' : '#8e8e93' }}>{markets.summary.outlook}</p>}
-                </div>
-              )}
-              {world?.summary && (
-                <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-                  <p className="text-xs text-muted font-mono uppercase tracking-widest">World</p>
-                  <p className="text-xs text-white leading-relaxed">{world.summary.summary}</p>
-                  {world.summary.outlook && <p className="text-xs font-medium" style={{ color: world.summary.outlook.toLowerCase().includes('risk-on') ? '#30d158' : world.summary.outlook.toLowerCase().includes('risk-off') ? '#ff453a' : '#8e8e93' }}>{world.summary.outlook}</p>}
-                </div>
-              )}
-              {tech?.summary && (
-                <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-                  <p className="text-xs text-muted font-mono uppercase tracking-widest">Tech</p>
-                  <p className="text-xs text-white leading-relaxed">{tech.summary.summary}</p>
-                  {tech.summary.outlook && <p className="text-xs font-medium" style={{ color: tech.summary.outlook.toLowerCase().includes('bull') ? '#30d158' : tech.summary.outlook.toLowerCase().includes('bear') ? '#ff453a' : '#8e8e93' }}>{tech.summary.outlook}</p>}
-                </div>
-              )}
-            </div>
-          )}
-
-
-          {/* Top stories */}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top Stories</p>
             <div className="bg-card border border-border rounded-xl p-4">
@@ -446,24 +445,6 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
               }
             </div>
           </div>
-
-          {/* Sector grid */}
-          {markets?.sectors && Object.keys(markets.sectors).length > 0 && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Sector Sentiment</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {Object.entries(markets.sectors).map(([sector, d]: [string, any]) => (
-                  <div key={sector} className="bg-card border border-border rounded-xl p-4">
-                    <p className="text-xs text-muted mb-0.5">{sector}</p>
-                    <p className="text-xs font-mono text-muted mb-2">{d.etf}</p>
-                    <p className="text-sm font-semibold" style={{ color: sentimentColor(d.convictionScore) }}>{d.label}</p>
-                    <ScoreBar score={d.convictionScore} />
-                    <p className="text-xs text-muted mt-2">{d.articles} articles</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -473,55 +454,31 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
           {markets?.market_sentiment && (
             <ConvictionBanner label="Market Conviction" score={markets.market_sentiment.score} sublabel="Reuters · WSJ · FT · Finnhub · NewsAPI" />
           )}
+          {markets?.summary && <SummaryCard data={markets.summary} />}
 
-          {/* Summary + outlook */}
-          {markets?.summary && (
-            <SummaryCard data={markets.summary} />
-          )}
-
-          {/* Energy prices */}
-          {markets?.energy && Object.keys(markets.energy).length > 0 && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Energy Prices · EIA</p>
-              <div className="grid grid-cols-3 gap-3">
-                {markets.energy.wti     && <MacroCard label="WTI Crude"   value={markets.energy.wti.value}     change={markets.energy.wti.change}     unit="$" />}
-                {markets.energy.brent   && <MacroCard label="Brent Crude" value={markets.energy.brent.value}   change={markets.energy.brent.change}   unit="$" />}
-                {markets.energy.nat_gas && <MacroCard label="Nat Gas"     value={markets.energy.nat_gas.value} change={markets.energy.nat_gas.change} unit="$" />}
-              </div>
-            </div>
-          )}
-
-          {/* Sector sentiment + catalysts */}
+          {/* Sector sentiment — compact with one-line catalyst/risk */}
           {markets?.sectors && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Sector Sentiment</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-card border border-border rounded-xl divide-y divide-border">
                 {Object.entries(markets.sectors).map(([sector, d]: [string, any]) => (
-                  <div key={sector} className="bg-card border border-border rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <p className="text-xs text-muted">{sector}</p>
-                        <p className="text-xs font-mono text-muted">{d.etf}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold" style={{ color: sentimentColor(d.convictionScore) }}>{d.label}</p>
-                        <p className="text-xs font-mono text-muted">{d.articles} articles</p>
+                  <div key={sector} className="flex items-start justify-between gap-4 p-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <p className="text-xs font-mono text-muted w-8 flex-shrink-0">{d.etf}</p>
+                      <div className="min-w-0">
+                        <p className="text-xs text-white font-medium">{sector}</p>
+                        {(d.catalyst || d.risk) && (
+                          <p className="text-xs text-muted truncate mt-0.5">{d.catalyst ?? d.risk}</p>
+                        )}
                       </div>
                     </div>
-                    <ScoreBar score={d.convictionScore} />
-                    {(d.catalyst || d.risk) && (
-                      <div className="mt-3 space-y-1">
-                        {d.catalyst && <p className="text-xs text-green-400 flex gap-1.5"><span>↑</span>{d.catalyst}</p>}
-                        {d.risk     && <p className="text-xs text-red-400   flex gap-1.5"><span>↓</span>{d.risk}</p>}
-                      </div>
-                    )}
+                    <p className="text-xs font-semibold flex-shrink-0" style={{ color: sentimentColor(d.convictionScore) }}>{d.label}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Headlines */}
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Market Headlines</p>
             <div className="bg-card border border-border rounded-xl p-4">
@@ -567,6 +524,18 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       {tab === 'macro' && (
         <div className="space-y-6">
           {macro?.analysis && <SummaryCard data={macro.analysis} />}
+
+          {/* Key indicators */}
+          {macro?.indicators && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {macro.indicators.fed_funds    && <MacroStripCard label="Fed Funds"  value={macro.indicators.fed_funds.value}    change={macro.indicators.fed_funds.change}    unit="%" />}
+              {macro.indicators.dgs10        && <MacroStripCard label="10Y"        value={macro.indicators.dgs10.value}        change={macro.indicators.dgs10.change}        unit="%" />}
+              {macro.indicators.t10y2y       && <MacroStripCard label="10Y-2Y"     value={macro.indicators.t10y2y.value}       change={macro.indicators.t10y2y.change}       unit="%" />}
+              {macro.indicators.unemployment && <MacroStripCard label="Unemploymt" value={macro.indicators.unemployment.value} change={macro.indicators.unemployment.change} unit="%" />}
+              {macro.jobs?.nonfarm_payrolls  && <MacroStripCard label="NFP"        value={Math.round(macro.jobs.nonfarm_payrolls / 1000)} unit="K" />}
+            </div>
+          )}
+
           {macro?.history?.rates?.length > 0 && (
             <div>
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Rates History · 120 Days</p>
@@ -609,65 +578,26 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
             <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
           )}
 
-          {/* Sector breakdown */}
-          {analysis?.sectors && (
+          {/* US Sector conviction bar */}
+          {markets?.sectors && (
             <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Conviction by Sector</p>
-              <div className="grid grid-cols-3 gap-3">
-                {Object.entries(analysis.sectors).map(([key, d]: [string, any]) => (
-                  <div key={key} className="bg-card border border-border rounded-xl p-4">
-                    <p className="text-xs text-muted mb-1 capitalize">{key}</p>
-                    <p className="text-lg font-mono font-bold" style={{ color: sentimentColor(d.score) }}>
-                      {d.score > 0 ? '+' : ''}{d.score.toFixed(2)}
-                    </p>
-                    <p className="text-xs font-medium mt-0.5" style={{ color: sentimentColor(d.score) }}>{d.label}</p>
-                    <ScoreBar score={d.score} />
-                  </div>
-                ))}
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">US Sector Conviction</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <SectorSentimentChart sectors={markets.sectors} />
               </div>
             </div>
           )}
 
-          {/* Structured brief */}
+          {/* Market brief */}
           {analysis?.brief && <BriefCard text={analysis.brief} />}
 
-          {/* Sentiment history */}
+          {/* US vs World sentiment history */}
           <div>
-            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Sentiment History · 10 Weeks</p>
+            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">US Markets vs World Sentiment</p>
             <div className="bg-card border border-border rounded-xl p-4">
-              <SentimentHistoryChart data={analysis?.sentiment_history ?? []} />
+              <GlobalSentimentChart data={analysis?.sentiment_history ?? []} />
             </div>
           </div>
-
-          {/* Inflation chart */}
-          {(macro?.history?.cpi?.length > 0 || macro?.history?.pce?.length > 0) && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Inflation · CPI & PCE · 5 Years</p>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <InflationChart cpi={macro?.history?.cpi ?? []} pce={macro?.history?.pce ?? []} />
-              </div>
-            </div>
-          )}
-
-          {/* Unemployment chart */}
-          {macro?.history?.unemployment?.length > 0 && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Unemployment Rate · 5 Years</p>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <UnemploymentChart data={macro.history.unemployment} />
-              </div>
-            </div>
-          )}
-
-          {/* GDP chart */}
-          {macro?.history?.gdp?.length > 0 && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Real GDP Growth · 10 Years</p>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <GdpChart data={macro.history.gdp} />
-              </div>
-            </div>
-          )}
 
           {/* Top 10 global stories */}
           {analysis?.top10?.length > 0 && (
