@@ -431,26 +431,43 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       </div>
 
       {/* ── HOME ──────────────────────────────────────────────────── */}
-      {tab === 'home' && (
-        <div className="space-y-6">
-          {analysis?.global_conviction && (
-            <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
-          )}
-
-          {/* Single combined brief */}
-          {analysis?.brief && <BriefCard text={analysis.brief} />}
-
-          <div>
-            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top Stories</p>
-            <div className="bg-card border border-border rounded-xl p-4">
-              {analysis?.top10?.length > 0
-                ? <HeadlineFeed items={analysis.top10} />
-                : <p className="text-sm text-muted py-2">Analysis agent is warming up — check back after the next run.</p>
-              }
+      {tab === 'home' && (() => {
+        const tailwinds = [
+          ...(markets?.summary?.tailwinds ?? []),
+          ...(world?.summary?.tailwinds   ?? []),
+          ...(tech?.summary?.tailwinds    ?? []),
+        ].slice(0, 4)
+        const headwinds = [
+          ...(markets?.summary?.headwinds ?? []),
+          ...(world?.summary?.headwinds   ?? []),
+          ...(tech?.summary?.headwinds    ?? []),
+        ].slice(0, 4)
+        const parts = [markets?.summary?.summary, world?.summary?.summary, tech?.summary?.summary].filter(Boolean)
+        const score  = analysis?.global_conviction?.score ?? 0
+        const combined = parts.length ? {
+          summary:   parts.join(' '),
+          outlook:   macro?.analysis?.outlook ?? (score > 0.3 ? 'Bullish — composite of markets, world, and tech sentiment.' : score < -0.3 ? 'Bearish — composite of markets, world, and tech sentiment.' : 'Neutral — composite of markets, world, and tech sentiment.'),
+          tailwinds,
+          headwinds,
+        } : null
+        return (
+          <div className="space-y-6">
+            {analysis?.global_conviction && (
+              <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
+            )}
+            {combined && <SummaryCard data={combined} />}
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top Stories</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                {analysis?.top10?.length > 0
+                  ? <HeadlineFeed items={analysis.top10} />
+                  : <p className="text-sm text-muted py-2">Analysis agent is warming up — check back after the next run.</p>
+                }
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── MARKETS ───────────────────────────────────────────────── */}
       {tab === 'markets' && (
@@ -460,33 +477,10 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
           )}
           {markets?.summary && <SummaryCard data={markets.summary} />}
 
-          {/* Sector sentiment — compact with one-line catalyst/risk */}
-          {markets?.sectors && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Sector Sentiment</p>
-              <div className="bg-card border border-border rounded-xl divide-y divide-border">
-                {Object.entries(markets.sectors).map(([sector, d]: [string, any]) => (
-                  <div key={sector} className="flex items-start justify-between gap-4 p-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <p className="text-xs font-mono text-muted w-8 flex-shrink-0">{d.etf}</p>
-                      <div className="min-w-0">
-                        <p className="text-xs text-white font-medium">{sector}</p>
-                        {(d.catalyst || d.risk) && (
-                          <p className="text-xs text-muted truncate mt-0.5">{d.catalyst ?? d.risk}</p>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs font-semibold flex-shrink-0" style={{ color: sentimentColor(d.convictionScore) }}>{d.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div>
             <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Market Headlines</p>
             <div className="bg-card border border-border rounded-xl p-4">
-              <HeadlineFeed items={markets?.headlines ?? []} />
+              <HeadlineFeed items={markets?.markets?.headlines ?? []} />
             </div>
           </div>
         </div>
@@ -553,6 +547,22 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
               <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Real GDP Growth · 10 Years</p>
               <div className="bg-card border border-border rounded-xl p-4">
                 <GdpChart data={macro.history.gdp} />
+              </div>
+            </div>
+          )}
+          {(macro?.history?.cpi?.length > 0 || macro?.history?.pce?.length > 0) && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Inflation · CPI &amp; PCE YoY</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <InflationChart cpi={macro.history.cpi ?? []} pce={macro.history.pce ?? []} />
+              </div>
+            </div>
+          )}
+          {macro?.history?.unemployment?.length > 0 && (
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Unemployment Rate</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <UnemploymentChart data={macro.history.unemployment} />
               </div>
             </div>
           )}
