@@ -29,6 +29,12 @@ yarn-error.log*
 # data files (generated at runtime)
 /data/intelligence.json
 
+# SSH keys and stray files
+ssh-key*
+*.key
+*.pub
+download.png
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
