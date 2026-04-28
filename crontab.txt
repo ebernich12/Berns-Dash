@@ -3,6 +3,6 @@
 0 12,23 * * * node /home/ubuntu/dashboard/scripts/music-agent.mjs >> /home/ubuntu/logs/music.log 2>&1
 0 */2 * * * node /home/ubuntu/dashboard/scripts/news-markets-agent.mjs >> /home/ubuntu/logs/news-markets.log 2>&1
 0 */2 * * * node /home/ubuntu/dashboard/scripts/news-world-agent.mjs >> /home/ubuntu/logs/news-world.log 2>&1
-30 13,20 * * * node /home/ubuntu/dashboard/scripts/news-tech-agent.mjs >> /home/ubuntu/logs/news-tech.log 2>&1
-30 13,20 * * * node /home/ubuntu/dashboard/scripts/news-macro-agent.mjs >> /home/ubuntu/logs/news-macro.log 2>&1
+30 13 * * * node /home/ubuntu/dashboard/scripts/news-tech-agent.mjs >> /home/ubuntu/logs/news-tech.log 2>&1
+30 13 * * * node /home/ubuntu/dashboard/scripts/news-macro-agent.mjs >> /home/ubuntu/logs/news-macro.log 2>&1
 15 */2 * * * node /home/ubuntu/dashboard/scripts/news-analysis-agent.mjs >> /home/ubuntu/logs/news-analysis.log 2>&1

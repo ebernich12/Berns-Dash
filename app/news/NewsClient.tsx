@@ -570,44 +570,49 @@ export default function NewsClient({ markets, world, tech, macro, analysis }: {
       )}
 
       {/* ── ANALYSIS ──────────────────────────────────────────────── */}
-      {tab === 'analysis' && (
-        <div className="space-y-6">
-          {analysis?.global_conviction && (
-            <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
-          )}
-
-          {/* US Sector conviction bar */}
-          {markets?.sectors && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">US Sector Conviction</p>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <SectorSentimentChart sectors={markets.sectors} />
+      {tab === 'analysis' && (() => {
+        const tailwinds = [
+          ...(markets?.summary?.tailwinds ?? []),
+          ...(world?.summary?.tailwinds   ?? []),
+          ...(tech?.summary?.tailwinds    ?? []),
+        ].slice(0, 4)
+        const headwinds = [
+          ...(markets?.summary?.headwinds ?? []),
+          ...(world?.summary?.headwinds   ?? []),
+          ...(tech?.summary?.headwinds    ?? []),
+        ].slice(0, 4)
+        const parts = [markets?.summary?.summary, world?.summary?.summary, tech?.summary?.summary].filter(Boolean)
+        const score = analysis?.global_conviction?.score ?? 0
+        const combined = parts.length ? {
+          summary:   parts.join(' '),
+          outlook:   macro?.analysis?.outlook ?? (score > 0.3 ? 'Bullish — composite of markets, world, and tech sentiment.' : score < -0.3 ? 'Bearish — composite of markets, world, and tech sentiment.' : 'Neutral — composite of markets, world, and tech sentiment.'),
+          tailwinds,
+          headwinds,
+        } : null
+        return (
+          <div className="space-y-6">
+            {analysis?.global_conviction && (
+              <ConvictionBanner label="Global Conviction" score={analysis.global_conviction.score} sublabel="Markets 50% · World 30% · Tech 20%" />
+            )}
+            {combined && <SummaryCard data={combined} />}
+            {markets?.sectors && (
+              <div>
+                <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">US Sector Conviction</p>
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <SectorSentimentChart sectors={markets.sectors} />
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Market brief */}
-          {analysis?.brief && <BriefCard text={analysis.brief} />}
-
-          {/* US vs World sentiment history */}
-          <div>
-            <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">US Markets vs World Sentiment</p>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <GlobalSentimentChart data={analysis?.sentiment_history ?? []} />
+            )}
+            <div>
+              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">US Markets vs World Sentiment</p>
+              <div className="bg-card border border-border rounded-xl p-4">
+                <GlobalSentimentChart data={analysis?.sentiment_history ?? []} />
+              </div>
             </div>
           </div>
+        )
+      })()}
 
-          {/* Top 10 global stories */}
-          {analysis?.top10?.length > 0 && (
-            <div>
-              <p className="text-xs text-muted font-mono uppercase tracking-widest mb-3">Top 10 Global Stories · Groq Ranked</p>
-              <div className="bg-card border border-border rounded-xl p-4">
-                <HeadlineFeed items={analysis.top10} />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }

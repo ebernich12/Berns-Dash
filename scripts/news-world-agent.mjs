@@ -195,16 +195,23 @@ async function run() {
     .sort((a, b) => b.datetime - a.datetime)
     .slice(0, 30)
 
-  console.log(`[WorldAgent] ${all.length} headlines, scoring...`)
+  const cache = new Map((existing?.headlines ?? []).map(h => [h.url, h.sentiment]))
+  const newOnes = all.filter(h => !cache.has(h.url))
+  console.log(`[WorldAgent] ${all.length} headlines, ${newOnes.length} new, scoring only those...`)
 
-  const scores  = await scoreHeadlines(all.map(h => h.headline)).catch(() => [])
+  const newScores = newOnes.length ? await scoreHeadlines(newOnes.map(h => h.headline)).catch(() => []) : []
+  const scoreByUrl = new Map(newOnes.map((h, i) => [h.url, newScores[i] ?? 0]))
   const now     = Math.floor(Date.now() / 1000)
-  const scored  = all.map((h, i) => ({
-    ...h,
-    sentiment:   +(scores[i] ?? 0).toFixed(3),
-    breaking:    (now - h.datetime) < 2700,
-    highImpact:  Math.abs(scores[i] ?? 0) >= 0.6,
-  }))
+  const scored  = all.map(h => {
+    const sentiment = cache.has(h.url) ? cache.get(h.url) : (scoreByUrl.get(h.url) ?? 0)
+    return {
+      ...h,
+      sentiment:   +sentiment.toFixed(3),
+      breaking:    (now - h.datetime) < 2700,
+      highImpact:  Math.abs(sentiment) >= 0.6,
+    }
+  })
+  const scores = scored.map(h => h.sentiment)
 
   const conviction = convictionScore(scores)
 

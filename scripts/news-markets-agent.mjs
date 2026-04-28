@@ -242,28 +242,34 @@ async function run() {
     .sort((a, b) => b.datetime - a.datetime)
     .slice(0, 30)
 
-  console.log(`[MarketsAgent] ${all.length} headlines, scoring...`)
+  // Cache: reuse scores for headlines we've already seen
+  const cache = new Map((existing?.headlines ?? []).map(h => [h.url, h.sentiment]))
+  const newOnes = all.filter(h => !cache.has(h.url))
+  console.log(`[MarketsAgent] ${all.length} headlines, ${newOnes.length} new, scoring only those + sectors...`)
 
-  // Score main headlines + sector news in parallel
-  const [mainScoresRes, ...sectorScoreResults] = await Promise.allSettled([
-    scoreHeadlines(all.map(h => h.headline)),
+  const [mainNewScoresRes, ...sectorScoreResults] = await Promise.allSettled([
+    newOnes.length ? scoreHeadlines(newOnes.map(h => h.headline)) : Promise.resolve([]),
     ...sectorEntries.map(([sector]) => scoreHeadlines(sectorNews[sector].map(h => h.headline))),
   ])
 
-  const mainScores   = mainScoresRes.status === 'fulfilled' ? mainScoresRes.value : []
-  const sectorScores = {}
+  const mainNewScores = mainNewScoresRes.status === 'fulfilled' ? mainNewScoresRes.value : []
+  const newScoreByUrl = new Map(newOnes.map((h, i) => [h.url, mainNewScores[i] ?? 0]))
+  const sectorScores  = {}
   sectorEntries.forEach(([sector], i) => {
     sectorScores[sector] = sectorScoreResults[i]?.status === 'fulfilled' ? sectorScoreResults[i].value : []
   })
 
   const now    = Math.floor(Date.now() / 1000)
-  const scored = all.map((h, i) => ({
-    ...h,
-    sentiment:  +(mainScores[i] ?? 0).toFixed(3),
-    breaking:   (now - h.datetime) < 2700,
-    highImpact: Math.abs(mainScores[i] ?? 0) >= 0.6,
-  }))
-
+  const scored = all.map(h => {
+    const sentiment = cache.has(h.url) ? cache.get(h.url) : (newScoreByUrl.get(h.url) ?? 0)
+    return {
+      ...h,
+      sentiment:  +sentiment.toFixed(3),
+      breaking:   (now - h.datetime) < 2700,
+      highImpact: Math.abs(sentiment) >= 0.6,
+    }
+  })
+  const mainScores = scored.map(h => h.sentiment)
   const conviction = convictionScore(mainScores)
 
   const sectors = {}
